@@ -170,6 +170,57 @@
          .editor-buttons button {
              padding: 10px 15px;
          }
+
+         /* Seção de Sincronização */
+         .sync-container {
+             background-color: white;
+             padding: 20px 30px;
+             border-radius: 8px;
+             box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+             width: 90%;
+             max-width: 800px;
+             margin-bottom: 30px;
+             box-sizing: border-box;
+         }
+         .sync-toggle {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             cursor: pointer;
+             user-select: none;
+         }
+         .sync-toggle h3 {
+             margin: 0;
+             color: #1A2B4C;
+             font-size: 1em;
+         }
+         .sync-toggle span { font-size: 1.2em; transition: transform 0.2s; }
+         .sync-toggle.open span { transform: rotate(180deg); }
+         .sync-body {
+             display: none;
+             margin-top: 18px;
+             border-top: 1px solid #E0E6EE;
+             padding-top: 18px;
+         }
+         .sync-field { margin-bottom: 12px; }
+         .sync-field label { display: block; font-weight: bold; color: #334466; margin-bottom: 4px; font-size: 0.9em; }
+         .sync-field input, .sync-field select {
+             width: 100%; padding: 8px 10px; border: 1px solid #AABBDD;
+             border-radius: 4px; font-size: 0.95em; box-sizing: border-box;
+         }
+         .sync-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+         .sync-actions button { padding: 9px 18px; font-size: 0.95em; }
+         .sync-status-bar {
+             margin-top: 15px; padding: 10px 14px;
+             background-color: #F0F4FA; border-radius: 5px;
+             font-size: 0.88em; color: #334466;
+             display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+         }
+         .sync-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+         .sync-dot.online  { background-color: #28a745; }
+         .sync-dot.offline { background-color: #dc3545; }
+         .sync-dot.syncing { background-color: #ffc107; animation: pulse 1s infinite; }
+         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
      </style>
      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
  </head>
@@ -208,6 +259,43 @@
          </p>
      </div>
  
+     <!-- Seção de Sincronização -->
+     <div class="sync-container">
+         <div class="sync-toggle" id="syncToggle" onclick="toggleSyncPanel()">
+             <h3>⚙ Configurar Sincronização</h3>
+             <span>▼</span>
+         </div>
+         <div class="sync-body" id="syncBody">
+             <div class="sync-field">
+                 <label for="syncEndpoint">Endpoint da API</label>
+                 <input type="text" id="syncEndpoint" placeholder="https://meu-servidor.com/api/sislab">
+             </div>
+             <div class="sync-field">
+                 <label for="syncInterval">Intervalo de Sincronização</label>
+                 <select id="syncInterval">
+                     <option value="5">A cada 5 minutos</option>
+                     <option value="15">A cada 15 minutos</option>
+                     <option value="30">A cada 30 minutos</option>
+                     <option value="60">A cada 1 hora</option>
+                 </select>
+             </div>
+             <div class="sync-field">
+                 <label for="syncApiKey">Chave de API <small>(opcional)</small></label>
+                 <input type="password" id="syncApiKey" placeholder="Deixe em branco se não usar autenticação">
+             </div>
+             <div class="sync-actions">
+                 <button onclick="salvarConfigSync()">Salvar Configuração</button>
+                 <button onclick="window.SislabSync?.sincronizarAgora()">Sincronizar Agora</button>
+             </div>
+             <div class="sync-status-bar" id="syncStatusBar">
+                 <span><span class="sync-dot offline" id="syncDot"></span><span id="syncOnlineLabel">Offline</span></span>
+                 <span>Última sinc.: <b id="syncLastSync">—</b></span>
+                 <span>Pendentes: <b id="syncPendentes">—</b></span>
+                 <span id="syncErro" style="color:#CC3333;display:none"></span>
+             </div>
+         </div>
+     </div>
+
      <div id="editorExames">
          <h3>Editar Lista de Exames</h3>
          <textarea id="listaExamesEditor"></textarea><br>
@@ -218,8 +306,21 @@
      </div>
 
      <script type="module">
-         import { clearHistorico, exportarDados, importarDados, getListaExamesCache, setListaExamesCache } from './data_storage.js';
-         window.SislabStorage = { clearHistorico, exportarDados, importarDados, getListaExamesCache, setListaExamesCache };
+         import { clearHistorico, exportarDados, importarDados, getListaExamesCache, setListaExamesCache, getSyncConfig } from './data_storage.js';
+         import { iniciarSync, sincronizarAgora, getSyncStatus } from './sync.js';
+         window.SislabStorage = { clearHistorico, exportarDados, importarDados, getListaExamesCache, setListaExamesCache, getSyncConfig };
+         window.SislabSync = { iniciarSync, sincronizarAgora, getSyncStatus };
+
+         // Carrega configuração salva nos campos do formulário
+         const cfg = getSyncConfig();
+         if (cfg) {
+             document.getElementById('syncEndpoint').value  = cfg.endpoint       || '';
+             document.getElementById('syncInterval').value  = cfg.intervalMinutes || '5';
+             document.getElementById('syncApiKey').value    = cfg.apiKey          || '';
+         }
+
+         // Inicia o timer de sync se já houver endpoint configurado
+         if (cfg?.endpoint) iniciarSync();
      </script>
 
      <script>
@@ -303,6 +404,69 @@
              }
              window.SislabStorage.exportarDados();
          }
+
+         // ── Sincronização ──────────────────────────────────────────────
+
+         function toggleSyncPanel() {
+             const body = document.getElementById('syncBody');
+             const toggle = document.getElementById('syncToggle');
+             const open = body.style.display !== 'block';
+             body.style.display = open ? 'block' : 'none';
+             toggle.classList.toggle('open', open);
+             if (open && window.SislabSync) atualizarStatusSync(window.SislabSync.getSyncStatus());
+         }
+
+         function salvarConfigSync() {
+             const endpoint = document.getElementById('syncEndpoint').value.trim();
+             if (!endpoint) { alert('Informe o endpoint da API.'); return; }
+             const config = {
+                 endpoint,
+                 intervalMinutes: parseInt(document.getElementById('syncInterval').value) || 5,
+                 apiKey: document.getElementById('syncApiKey').value.trim() || null
+             };
+             if (window.SislabStorage?.getSyncConfig !== undefined) {
+                 localStorage.setItem('sislab_sync_config', JSON.stringify(config));
+             }
+             if (window.SislabSync) window.SislabSync.iniciarSync();
+             alert('Configuração salva! Sincronização iniciada.');
+         }
+
+         function atualizarStatusSync(status) {
+             if (!status) return;
+             const dot = document.getElementById('syncDot');
+             const label = document.getElementById('syncOnlineLabel');
+             const lastSync = document.getElementById('syncLastSync');
+             const pendentes = document.getElementById('syncPendentes');
+             const erro = document.getElementById('syncErro');
+
+             if (status.sincronizando) {
+                 dot.className = 'sync-dot syncing'; label.textContent = 'Sincronizando...';
+             } else if (status.online) {
+                 dot.className = 'sync-dot online'; label.textContent = 'Online';
+             } else {
+                 dot.className = 'sync-dot offline'; label.textContent = 'Offline';
+             }
+
+             if (status.lastSync) {
+                 const d = new Date(status.lastSync);
+                 lastSync.textContent = `${d.toLocaleDateString()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+             } else {
+                 lastSync.textContent = 'nunca';
+             }
+
+             pendentes.textContent = status.pendentes ?? '—';
+
+             if (status.erro) {
+                 erro.textContent = '⚠ ' + status.erro;
+                 erro.style.display = 'inline';
+             } else {
+                 erro.style.display = 'none';
+             }
+         }
+
+         document.addEventListener('sislab:sync-status', e => atualizarStatusSync(e.detail));
+
+         // ── Importação ────────────────────────────────────────────────
 
          async function importarDadosAdmin(event) {
              const file = event.target.files[0];
