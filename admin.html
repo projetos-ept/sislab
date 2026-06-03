@@ -230,11 +230,12 @@
          }
 
          async function limparHistoricoAdmin() {
+             const senhaEsperada = gerarSenhaAtual(); // Captura antes do prompt
              const senhaDigitada = prompt(`Para limpar o histórico, digite a senha`);
              if (senhaDigitada === null) {
                  return;
              }
-             if (senhaDigitada !== gerarSenhaAtual()) {
+             if (senhaDigitada !== senhaEsperada) {
                  alert('Senha incorreta. Histórico não foi limpo.');
                  return;
              }
@@ -256,8 +257,9 @@
          }
 
          async function editarListaExamesComSenha() {
+             const senhaEsperada = gerarSenhaAtual(); // Captura antes do prompt
              const senhaDigitada = prompt("Digite a senha:");
-             if (senhaDigitada !== gerarSenhaAtual()) {
+             if (senhaDigitada !== senhaEsperada) {
                  alert("Senha incorreta.");
                  return;
              }
