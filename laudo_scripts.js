@@ -1,5 +1,5 @@
 // laudo_scripts.js
-// VERSÃO: 1.0.39 (laudo_scripts.js)
+// VERSÃO: 1.0.40 (laudo_scripts.js)
 // CHANGELOG:
 // - CORREÇÃO: O alinhamento do resultado e da unidade no PDF foi corrigido para que fiquem imediatamente após o nome do exame na mesma linha, alinhados à esquerda.
 // - ATUALIZADO: A lógica de geração do HTML na página foi ajustada para corresponder ao layout solicitado, com o nome do exame em uma linha, material e método na linha seguinte, e o resultado, unidade e referência na linha abaixo.
@@ -15,20 +15,18 @@
 // - CORREÇÃO: Ajustes na lógica de quebra de página e posicionamento do rodapé no PDF.
 // - CORREÇÃO: Padronização dos espaçamentos verticais no cabeçalho do PDF para melhor layout.
 // - CORREÇÃO: Correção de erro de digitação em 'OBSERVATIONS GERAIS DO LAUDO' para 'OBSERVAÇÕES GERAIS DO LAUDO' no PDF.
-// - CORREÇÃO: Correção de typo em função de busca de CPF (formatarCPFParaCpfParaBusca -> formatarCPFParaBusca).
 // - REMOVIDO: Linha fina superior ao título principal "RESULTADOS".
 // - AJUSTADO: Posição Y do texto "Liberado por..." no rodapé para evitar corte na impressão.
 // - REMOVIDO: Texto "Assinatura do Responsável Técnico" abaixo da linha de assinatura, por ser redundante.
 // - ADICIONADO: Inclusão do logo usando URL (https://hyskal.github.io/connect/logo.png) no canto superior esquerdo do cabeçalho de todas as páginas.
 // - ALTERADO: Segundo título "RESULTADOS:" para "EXAMES:".
 // - ALTERADO: Termo "Ref.:" para "Valores de Referência:" no output do PDF.
+// - MIGRADO: Removidas todas as referências ao Firebase Firestore. Agora usa localStorage via data_storage.js.
 
-console.log("DEBUG(laudo_scripts): Script carregado e iniciando execução. Versão 1.0.39."); // INÍCIO DE DEPURAÇÃO GLOBAL
+console.log("DEBUG(laudo_scripts): Script carregado e iniciando execução. Versão 1.0.40."); // INÍCIO DE DEPURAÇÃO GLOBAL
 
 // Seção 1: Importações e Variáveis Globais
-// As funções do Firebase são globalizadas em laudo_resultados.html.
-// Importamos APENAS as funções de utilidade de sislab_utils.js que são exportadas corretamente.
-// 'calcularIdade' não será importada, pois será reimplementada localmente.
+import { searchHistorico, getProtocoloById, addOrUpdateLaudo, getLaudoByPatientId } from './data_storage.js';
 import { formatDateTimeToDisplay, formatDateToDisplay, showError, clearError } from './sislab_utils.js';
 import { EXAM_DETAILS } from './exames_ref.js'; // Importa EXAM_DETAILS do novo arquivo
 
@@ -96,15 +94,6 @@ console.log("DEBUG(laudo_scripts): calcularIdade (local) é tipo:", typeof calcu
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DEBUG(laudo_scripts): DOMContentLoaded - Iniciando setup da página de Emissão de Laudos.");
 
-    // Verificação de inicialização do Firebase Firestore
-    if (typeof window.firestoreDb === 'undefined' || !window.firestoreDb) {
-        console.error("DEBUG(laudo_scripts): ERRO FATAL: window.firestoreDb não está definido. Firebase não inicializado corretamente no HTML.");
-        alert("Erro: O banco de dados Firebase não foi inicializado corretamente. Verifique o console para detalhes.");
-        return; // Impede a continuação da execução se o DB não estiver disponível
-    } else {
-        console.log("DEBUG(laudo_scripts): Firebase Firestore acessível via window.firestoreDb. Prosseguindo.");
-    }
-
     const searchPatientBtn = document.getElementById('searchPatientBtn');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
     const saveLaudoBtn = document.getElementById('saveLaudoBtn');
@@ -160,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error("DEBUG(laudo_scripts): Elemento 'searchQueryInput' não encontrado. Verifique o HTML.");
     }
-    
+
     console.log("DEBUG(laudo_scripts): DOMContentLoaded - Setup inicial concluído.");
 });
 
@@ -211,18 +200,6 @@ function clearAllLaudoFields() {
     alert("Todos os campos do laudo foram limpos.");
 }
 
-// Função auxiliar para padronizar CPF para busca no banco de dados (sem máscara)
-function formatarCPFParaBusca(cpfComMascara) {
-    console.log("DEBUG(formatarCPFParaBusca): Formatando CPF para busca:", cpfComMascara);
-    if (!cpfComMascara) {
-        console.log("DEBUG(formatarCPFParaBusca): CPF para busca é vazio.");
-        return '';
-    }
-    const cpfLimpo = cpfComMascara.replace(/\D/g, ''); // Remove todos os caracteres não-dígitos
-    console.log("DEBUG(formatarCPFParaBusca): CPF formatado para busca:", cpfLimpo);
-    return cpfLimpo;
-}
-
 // Seção 4: Funcionalidade de Busca de Paciente
 async function searchPatient() {
     console.log("DEBUG(searchPatient): Iniciando função de busca de paciente.");
@@ -233,7 +210,7 @@ async function searchPatient() {
     clearError('searchQuery');
     patientResultsList.innerHTML = ''; // Limpa resultados anteriores
     searchResultStatus.textContent = 'Buscando...';
-    
+
     // Oculta as seções de display de paciente e resultados de exame enquanto busca
     document.querySelector('.patient-display-section').style.display = 'none';
     document.querySelector('.results-input-section').style.display = 'none';
@@ -241,67 +218,10 @@ async function searchPatient() {
 
     console.log(`DEBUG(searchPatient): Termo de busca atual: "${searchQuery}"`);
 
-    // Verifica se o Firestore está inicializado (checagem redundante para segurança)
-    if (typeof window.firestoreDb === 'undefined' || !window.firestoreDb) {
-        searchResultStatus.textContent = 'Erro: Banco de dados não inicializado.';
-        alert("Erro: O banco de dados não está inicializado. Verifique a configuração do Firebase no HTML.");
-        console.error("DEBUG(searchPatient): Firestore DB não inicializado ou disponível ao tentar buscar.");
-        return;
-    }
-
     try {
-        const historicoRef = window.firebaseFirestoreCollection(window.firestoreDb, 'historico');
-        let queryConstraints = [];
-
-        // Tenta identificar o tipo de busca
-        const isProtocol = /^\d{4}-\d{8}$/.test(searchQuery); // Ex: 0001-15301707
-        const isCpf = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(searchQuery) || /^\d{11}$/.test(searchQuery.replace(/\D/g, '')); // Com ou sem máscara
-        
-        console.log(`DEBUG(searchPatient): Tentativa de identificar tipo de busca para "${searchQuery}": isProtocol=${isProtocol}, isCpf=${isCpf}`);
-
-        if (!searchQuery) {
-            // Se o campo de busca estiver vazio, carrega todos os históricos (similar a mostrarHistorico do index.html)
-            console.log("DEBUG(searchPatient): Termo de busca vazio detectado. Carregando TODO o histórico por 'protocolo' (desc).");
-            queryConstraints.push(window.firebaseFirestoreOrderBy('protocolo', 'desc')); // Ordena para pegar os mais recentes primeiro
-        } else if (isProtocol) {
-            console.log(`DEBUG(searchPatient): Busca identificada como Protocolo: "${searchQuery}".`);
-            queryConstraints.push(window.firebaseFirestoreWhere('protocolo', '==', searchQuery));
-        } else if (isCpf) {
-            const cpfLimpo = formatarCPFParaBusca(searchQuery);
-            console.log(`DEBUG(searchPatient): Busca identificada como CPF. CPF limpo para consulta: "${cpfLimpo}".`);
-            queryConstraints.push(window.firebaseFirestoreWhere('cpf', '==', cpfLimpo));
-        } else {
-            // Busca por nome ou parte do nome. Firestore não suporta 'contains' diretamente para texto sem índices específicos.
-            // A melhor abordagem é buscar tudo ordenado por nome e filtrar em memória para 'contains'.
-            console.log(`DEBUG(searchPatient): Busca por nome/termo genérico: "${searchQuery}". Realizando busca ampla e filtro em memória.`);
-            // Adicionamos um orderBy por nome para otimizar o filtro em memória, e para que o Firestore não reclame de falta de ordenação.
-            queryConstraints.push(window.firebaseFirestoreOrderBy('nome', 'asc')); 
-        }
-
-        // Constrói a query final
-        const q = window.firebaseFirestoreQuery(historicoRef, ...queryConstraints);
-        console.log("DEBUG(searchPatient): Query Firebase construída:", q);
-
-        console.log("DEBUG(searchPatient): Executando getDocs no Firebase Firestore...");
-        const querySnapshot = await window.firebaseFirestoreGetDocs(q);
-        let patients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log(`DEBUG(searchPatient): Query executada. ${patients.length} pacientes encontrados no Firestore antes do filtro em memória.`);
-        // console.log("DEBUG(searchPatient): Dados brutos dos pacientes retornados:", patients); // Descomente para ver todos os dados brutos
-
-        let filteredPatients = patients;
-
-        // Se a busca não foi por protocolo ou CPF exato E há um termo de busca, aplica filtro de nome/protocolo/CPF parcial em memória
-        if (!isProtocol && !isCpf && searchQuery) {
-            const lowerCaseSearchQuery = searchQuery.toLowerCase();
-            const cpfSearchPart = formatarCPFParaBusca(lowerCaseSearchQuery);
-
-            filteredPatients = patients.filter(p => 
-                (p.nome && p.nome.toLowerCase().includes(lowerCaseSearchQuery)) ||
-                (p.protocolo && p.protocolo.toLowerCase().includes(lowerCaseSearchQuery)) ||
-                (p.cpf && formatarCPFParaBusca(p.cpf).includes(cpfSearchPart))
-            );
-            console.log(`DEBUG(searchPatient): ${filteredPatients.length} pacientes após filtro de nome/protocolo/CPF parcial em memória.`);
-        }
+        // searchHistorico retorna resultados já filtrados e ordenados do localStorage
+        const filteredPatients = searchHistorico(searchQuery);
+        console.log(`DEBUG(searchPatient): ${filteredPatients.length} pacientes retornados pelo searchHistorico.`);
 
         if (filteredPatients.length === 0) {
             searchResultStatus.textContent = 'Nenhum paciente encontrado com o termo de busca.';
@@ -311,7 +231,7 @@ async function searchPatient() {
 
         searchResultStatus.textContent = `Encontrados ${filteredPatients.length} paciente(s). Selecione abaixo:`;
         patientResultsList.innerHTML = ''; // Limpa lista de resultados para preencher
-        
+
         filteredPatients.forEach(patient => {
             const li = document.createElement('li');
             li.textContent = `${patient.nome} (CPF: ${patient.cpf || 'N/D'}, Protocolo: ${patient.protocolo || 'N/D'})`;
@@ -325,8 +245,8 @@ async function searchPatient() {
 
     } catch (error) {
         searchResultStatus.textContent = 'Erro ao buscar paciente. Verifique o console.';
-        console.error("DEBUG(searchPatient): Erro FATAL ao buscar paciente no Firebase:", error);
-        alert(`Erro ao buscar paciente: ${error.message}. Verifique o console para detalhes e considere criar um índice no Firebase, se sugerido pelo erro.`);
+        console.error("DEBUG(searchPatient): Erro ao buscar paciente no localStorage:", error);
+        alert(`Erro ao buscar paciente: ${error.message}. Verifique o console para detalhes.`);
     }
 }
 
@@ -351,42 +271,26 @@ async function selectPatient(patientId) {
     document.getElementById('examResultsContainer').innerHTML = '';
     document.getElementById('observacoesLaudoGeral').value = ''; // Limpa observações gerais
 
-    if (typeof window.firestoreDb === 'undefined' || !window.firestoreDb) {
-        console.error("DEBUG(selectPatient): Firestore DB não inicializado. Não é possível carregar paciente.");
-        alert("Erro: Banco de dados não inicializado para carregar paciente.");
-        return;
-    }
-
     try {
-        const docRef = window.firebaseFirestoreDoc(window.firestoreDb, 'historico', patientId);
-        console.log(`DEBUG(selectPatient): Buscando documento do paciente no Firestore para ID: "${patientId}".`);
-        const docSnap = await window.firebaseFirestoreGetDoc(docRef);
+        // Busca os dados do paciente no localStorage via data_storage.js
+        const patientDoc = getProtocoloById(patientId);
+        console.log(`DEBUG(selectPatient): Buscando dados do paciente no localStorage para ID: "${patientId}".`);
 
-        if (!docSnap.exists) {
+        if (!patientDoc) {
             alert("Paciente não encontrado no banco de dados.");
             console.warn("DEBUG(selectPatient): Documento do paciente não encontrado para ID:", patientId);
             clearSearchAndPatientData();
             return;
         }
 
-        selectedPatientData = { id: docSnap.id, ...docSnap.data() };
-        console.log("DEBUG(selectPatient): Dados do paciente carregados do Firestore (coleção 'historico'):", selectedPatientData);
+        selectedPatientData = patientDoc;
+        console.log("DEBUG(selectPatient): Dados do paciente carregados do localStorage (histórico):", selectedPatientData);
 
-        // NOVO: Buscar o último laudo salvo para este paciente
-        const laudosRef = window.firebaseFirestoreCollection(window.firestoreDb, 'laudos_resultados');
-        const qLaudo = window.firebaseFirestoreQuery(
-            laudosRef,
-            window.firebaseFirestoreWhere('patientId', '==', patientId), // Ou 'protocolo', se preferir
-            window.firebaseFirestoreOrderBy('dataEmissao', 'desc'),
-            window.firebaseFirestoreLimit(1)
-        );
-        console.log(`DEBUG(selectPatient): Buscando último laudo salvo para patientId: "${patientId}".`);
-        const laudoSnapshot = await window.firebaseFirestoreGetDocs(qLaudo);
-        let lastLaudoData = null;
-        if (!laudoSnapshot.empty) {
-            lastLaudoData = laudoSnapshot.docs[0].data();
-            console.log("DEBUG(selectPatient): Último laudo salvo encontrado:", lastLaudoData);
+        // Buscar o último laudo salvo para este paciente
+        const lastLaudoData = getLaudoByPatientId(patientId);
+        console.log(`DEBUG(selectPatient): Último laudo salvo para patientId "${patientId}":`, lastLaudoData);
 
+        if (lastLaudoData) {
             // Pré-preenche os campos de Responsável Técnico se houver dados salvos no laudo
             if (lastLaudoData.responsavelTecnico) {
                 document.getElementById('responsavelTecnicoNome').value = lastLaudoData.responsavelTecnico.nome || '';
@@ -421,7 +325,7 @@ async function selectPatient(patientId) {
         console.log("DEBUG(selectPatient): Paciente exibido e exames carregados. Final da função selectPatient.");
 
     } catch (error) {
-        console.error("DEBUG(selectPatient): Erro FATAL ao carregar paciente selecionado:", error);
+        console.error("DEBUG(selectPatient): Erro ao carregar paciente selecionado:", error);
         alert(`Erro ao carregar dados do paciente: ${error.message}.`);
         clearSearchAndPatientData();
     }
@@ -509,7 +413,7 @@ function displayPatientExamsForLaudo(examesList, examesNaoListados, patientGende
     // Cria um item de laudo para cada exame
     allExams.forEach((examName, index) => {
         console.log(`DEBUG(displayPatientExamsForLaudo): Processando exame [${index}]: "${examName}".`);
-        
+
         // Tentar obter dados salvos para este exame
         const savedExamData = savedResultsMap.get(examName);
         console.log(`DEBUG(displayPatientExamsForLaudo): Dados salvos para "${examName}":`, savedExamData);
@@ -563,7 +467,7 @@ function displayPatientExamsForLaudo(examesList, examesNaoListados, patientGende
             materialSelect += `<option value="${option}" ${selectedAttr}>${option}</option>`;
         });
         materialSelect += '</select>';
-        
+
         // NOVO: Cria o select de métodos
         let methodSelect = '<select class="exam-method-value" readonly disabled>';
         const methodOptions = examDetail.methodOptions || ['N/A'];
@@ -620,13 +524,13 @@ function setupExamResultItemEditing() {
     examResultItems.forEach((item, index) => {
         const editButton = item.querySelector('.edit-exam-btn');
         // Seleciona todos os inputs, selects e textareas dentro do item
-        const resultInputs = item.querySelectorAll('input, select, textarea.exam-observation'); 
+        const resultInputs = item.querySelectorAll('input, select, textarea.exam-observation');
 
         // Garante que o estado inicial (read-only) é aplicado, caso o item seja novo ou recarregado
         item.classList.add('read-only');
         resultInputs.forEach(input => input.setAttribute('readonly', true));
         // Para selects, a propriedade 'disabled' é usada para torná-los não editáveis
-        item.querySelectorAll('select').forEach(select => select.setAttribute('disabled', true)); 
+        item.querySelectorAll('select').forEach(select => select.setAttribute('disabled', true));
         editButton.textContent = 'Editar';
         editButton.dataset.action = 'edit';
 
@@ -676,19 +580,13 @@ function setupExamResultItemEditing() {
 }
 
 
-// Seção 8: Funcionalidade Salvar Laudo (Esboço)
+// Seção 8: Funcionalidade Salvar Laudo
 async function saveLaudo() {
     console.log("DEBUG(saveLaudo): Iniciando salvamento do laudo.");
 
     if (!selectedPatientData) {
         alert("Por favor, selecione um paciente antes de salvar o laudo.");
         console.warn("DEBUG(saveLaudo): Tentativa de salvar laudo sem paciente selecionado. Ação abortada.");
-        return;
-    }
-
-    if (typeof window.firestoreDb === 'undefined' || !window.firestoreDb) {
-        alert("Banco de dados não inicializado. Não é possível salvar o laudo.");
-        console.error("DEBUG(saveLaudo): Firestore DB não inicializado. Ação abortada.");
         return;
     }
 
@@ -726,26 +624,24 @@ async function saveLaudo() {
     const laudoData = {
         patientId: selectedPatientData.id,
         protocolo: selectedPatientData.protocolo,
-        nomePaciente: selectedPatientData.nome, // Ensure this matches Firestore (selectedPatientData.nome)
+        nomePaciente: selectedPatientData.nome,
         cpfPaciente: selectedPatientData.cpf,
         examesResultados: examResults,
         observacoesGerais: observacoesLaudoGeral,
-        dataEmissao: window.firebaseFirestoreServerTimestamp(), // Usa timestamp do servidor
+        dataEmissao: new Date().toISOString(), // Usa timestamp local ISO string
         responsavelTecnico: {
             nome: document.getElementById('responsavelTecnicoNome').value.trim() || '', // Lendo do input
             registro: document.getElementById('responsavelTecnicoRegistro').value.trim() || '' // Lendo do input
         }
     };
-    console.log("DEBUG(saveLaudo): Objeto de dados do laudo para salvar no Firebase:", laudoData);
+    console.log("DEBUG(saveLaudo): Objeto de dados do laudo para salvar no localStorage:", laudoData);
 
     try {
-        const laudosRef = window.firebaseFirestoreCollection(window.firestoreDb, 'laudos_resultados');
-        console.log("DEBUG(saveLaudo): Adicionando documento à coleção 'laudos_resultados'.");
-        const docRef = await window.firebaseFirestoreAddDoc(laudosRef, laudoData);
-        alert(`Laudo salvo com sucesso! ID do laudo: ${docRef.id}`);
-        console.log("DEBUG(saveLaudo): Laudo salvo com sucesso. ID do documento Firebase:", docRef.id);
+        const savedId = addOrUpdateLaudo(laudoData);
+        alert(`Laudo salvo com sucesso! ID do laudo: ${savedId}`);
+        console.log("DEBUG(saveLaudo): Laudo salvo com sucesso. ID do laudo:", savedId);
     } catch (error) {
-        console.error("DEBUG(saveLaudo): Erro FATAL ao salvar laudo no Firebase:", error);
+        console.error("DEBUG(saveLaudo): Erro ao salvar laudo no localStorage:", error);
         alert(`Erro ao salvar laudo: ${error.message}. Verifique o console.`);
     } finally {
         console.log("DEBUG(saveLaudo): Final do processo de salvamento do laudo.");
@@ -876,7 +772,7 @@ function generatePdfLaudo() {
     try { // START OF GLOBAL TRY BLOCK
         // Adicionar logo no canto superior esquerdo da primeira página
         doc.addImage(logoUrl, 'PNG', marginX, 10, 20, 20); // x, y, width, height (ajuste conforme necessário)
-        
+
         // --- Initial Page Header and Main Title ---
         // Manually draw the Lab Header on the first page (no doc.addPage() here)
         doc.setFontSize(18);
@@ -906,14 +802,14 @@ function generatePdfLaudo() {
         // --- Dados do Paciente ---
         console.log("DEBUG(generatePdfLaudo): Adicionando seção 'DADOS DO PACIENTE'.");
         // Check for page break BEFORE drawing the section title and content
-        if (currentY + (lineHeight * 6) + 10 > pageHeightLimit) { 
+        if (currentY + (lineHeight * 6) + 10 > pageHeightLimit) {
             currentY = handlePageBreakAndHeader(doc, currentY, "DADOS DO PACIENTE:", responsavelNome, responsavelRegistro, laudoDate);
         }
         doc.setFontSize(12);
         doc.text("DADOS DO PACIENTE:", marginX, currentY);
         currentY += 8;
         doc.setFontSize(11);
-        
+
         doc.text(`Protocolo: ${document.getElementById('patientProtocol').textContent}`, marginX + 5, currentY);
         currentY += lineHeight;
         doc.text(`Nome: ${document.getElementById('patientName').textContent}`, marginX + 5, currentY);
@@ -927,9 +823,9 @@ function generatePdfLaudo() {
         doc.text(`Contato: ${document.getElementById('patientContact').textContent}`, marginX + 5, currentY);
         currentY += lineHeight;
         doc.text(`Endereço: ${document.getElementById('patientAddress').textContent}`, marginX + 5, currentY);
-        
+
         currentY += 5;
-        if (currentY + 10 > pageHeightLimit) { 
+        if (currentY + 10 > pageHeightLimit) {
             currentY = handlePageBreakAndHeader(doc, currentY, null, responsavelNome, responsavelRegistro, laudoDate);
         }
         doc.setLineWidth(0.2);
@@ -939,7 +835,7 @@ function generatePdfLaudo() {
 
         // --- Resultados dos Exames ---
         console.log("DEBUG(generatePdfLaudo): Adicionando seção 'EXAMES'.");
-        if (currentY + 20 > pageHeightLimit) { 
+        if (currentY + 20 > pageHeightLimit) {
             currentY = handlePageBreakAndHeader(doc, currentY, "EXAMES:", responsavelNome, responsavelRegistro, laudoDate);
         }
         doc.setFontSize(12);
@@ -950,7 +846,7 @@ function generatePdfLaudo() {
         const examResultItems = document.querySelectorAll('.exam-result-item');
         if (examResultItems.length === 0) {
             console.log("DEBUG(generatePdfLaudo): Nenhum item de exame encontrado para adicionar ao PDF.");
-            if (currentY + lineHeight > pageHeightLimit) { 
+            if (currentY + lineHeight > pageHeightLimit) {
                 currentY = handlePageBreakAndHeader(doc, currentY, null, responsavelNome, responsavelRegistro, laudoDate);
             }
             doc.text("Nenhum resultado de exame preenchido.", marginX + 5, currentY);
@@ -979,7 +875,7 @@ function generatePdfLaudo() {
                 if (currentY + requiredHeight > pageHeightLimit) {
                     currentY = handlePageBreakAndHeader(doc, currentY, "EXAMES (Continuação):", responsavelNome, responsavelRegistro, laudoDate); // Alterado aqui também
                 }
-                
+
                 doc.setFontSize(10); // Font size for exam details
 
                 // --- NOVO: LÓGICA DE ALINHAMENTO CORRIGIDA ---
@@ -988,11 +884,11 @@ function generatePdfLaudo() {
                 doc.text(`${examName}: ${resultValue} ${unitValue}`, marginX + 5, currentY);
                 currentY += lineHeight;
                 doc.setFont(undefined, 'normal');
-                
+
                 // Linha 2: Material
                 doc.text(`Material: ${materialValue}`, marginX + 5, currentY);
                 currentY += lineHeight;
-                
+
                 // Linha 3: Método
                 doc.text(`Método: ${methodValue}`, marginX + 5, currentY);
                 currentY += lineHeight;
@@ -1003,13 +899,13 @@ function generatePdfLaudo() {
                     currentY += lineHeight;
                 }
                 // --- FIM DA LÓGICA DE ALINHAMENTO CORRIGIDA ---
-                
+
                 // Observations (now with per-line page break check)
                 if (observation) {
                     // The `Obs.:` prefix should be added here
                     const observationContent = `Obs.: ${observation}`;
                     const splitObsText = doc.splitTextToSize(observationContent, 170);
-                    
+
                     // Check for page break BEFORE drawing each line of observation
                     for (let i = 0; i < splitObsText.length; i++) {
                         const smallerLineHeight = 4;
@@ -1049,10 +945,10 @@ function generatePdfLaudo() {
 
         // --- Signature Section ---
         console.log("DEBUG(generatePdfLaudo): Adicionando seção de Assinatura do Responsável Técnico.");
-        if (currentY + (lineHeight * 4) + 10 > pageHeightLimit) { 
+        if (currentY + (lineHeight * 4) + 10 > pageHeightLimit) {
             currentY = handlePageBreakAndHeader(doc, currentY, "ASSINATURA DO RESPONSÁVEL TÉCNICO:", responsavelNome, responsavelRegistro, laudoDate);
         }
-        
+
         // Draw the signature line and text
         doc.setFontSize(10); // Adjust font size for signature block
         doc.text("__________________________________________", 105, currentY, null, null, "center");
@@ -1068,7 +964,7 @@ function generatePdfLaudo() {
         doc.text(registroResponsavelText, 105, currentY, null, null, "center");
         currentY += 5; // Extra space after signature block
 
-        if (currentY + 10 > pageHeightLimit) { 
+        if (currentY + 10 > pageHeightLimit) {
             currentY = handlePageBreakAndHeader(doc, currentY, null, responsavelNome, responsavelRegistro, laudoDate);
         }
         doc.setLineWidth(0.2);
@@ -1082,7 +978,7 @@ function generatePdfLaudo() {
         console.log("DEBUG(generatePdfLaudo): Conteúdo de observacoesLaudoGeral antes de desenhar:", observacoesLaudoGeral); // Debug log
         if (observacoesLaudoGeral) {
             console.log("DEBUG(generatePdfLaudo): Adicionando seção 'OBSERVAÇÕES GERAIS DO LAUDO'.");
-            if (currentY + 20 > pageHeightLimit) { 
+            if (currentY + 20 > pageHeightLimit) {
                 currentY = handlePageBreakAndHeader(doc, currentY, "OBSERVAÇÕES GERAIS DO LAUDO:", responsavelNome, responsavelRegistro, laudoDate); // Corrected typo
             }
             doc.setFontSize(10); // Changed title font size (2 levels smaller than 12)
@@ -1093,10 +989,10 @@ function generatePdfLaudo() {
 
             const observationContent = observacoesLaudoGeral; // No "Obs.:" prefix here, it's the general section
             const splitText = doc.splitTextToSize(observationContent, 170);
-            
+
             for (let i = 0; i < splitText.length; i++) { // Loop per line
                 const smallerLineHeight = 4;
-                if (currentY + smallerLineHeight > pageHeightLimit) { 
+                if (currentY + smallerLineHeight > pageHeightLimit) {
                     currentY = handlePageBreakAndHeader(doc, currentY, "OBSERVAÇÕES GERAIS DO LAUDO (Continuação):", responsavelNome, responsavelRegistro, laudoDate); // Corrected typo
                     doc.setFont(undefined, 'italic'); // Re-apply italic on new page
                     doc.setFontSize(9); // Re-apply font size on new page
@@ -1106,7 +1002,7 @@ function generatePdfLaudo() {
             }
             doc.setFont(undefined, 'normal'); // Reset font to normal after italic text
             currentY += 5;
-            if (currentY + 10 > pageHeightLimit) { 
+            if (currentY + 10 > pageHeightLimit) {
                 currentY = handlePageBreakAndHeader(doc, currentY, null, responsavelNome, responsavelRegistro, laudoDate);
             }
             doc.setLineWidth(0.2);
@@ -1169,7 +1065,7 @@ function generatePdfLaudo() {
         try {
             // Ensure there isn't an extra blank page at the very end (existing logic)
             // if (doc.internal.getNumberOfPages() > 1 && currentY <= (pageHeightLimit - 50)) { // Original condition, now adjusted
-            //     doc.deletePage(doc.internal.getNumberOfPages()); 
+            //     doc.deletePage(doc.internal.getNumberOfPages());
             //     console.log("DEBUG(generatePdfLaudo): Página vazia no final removida, se existia.");
             // }
 

@@ -2,7 +2,7 @@
  <html lang="pt-BR">
  <head>
      <meta charset="UTF-8">
-     <title>SISLAB - Administração V2.0.16</title>
+     <title>SISLAB - Administração V2.1.0</title>
      <style>
          body {
              font-family: Arial, sans-serif;
@@ -194,10 +194,12 @@
          <p class="warning">Cuidado: As ações nesta página podem ser irreversíveis!</p>
  
          <div class="button-group">
-             <button onclick="mostrarLogGeralInventario()">Ver Log Geral de Inventário</button>
              <button onclick="editarListaExamesComSenha()">Editar Lista de Exames</button>
-             <button class="danger-button" onclick="limparHistoricoAdmin()">Limpar TODO o Histórico do Firebase</button>
+             <button class="danger-button" onclick="limparHistoricoAdmin()">Limpar TODO o Histórico</button>
              <button onclick="gerarNovoPacienteAleatorio()">Gerar Novo Paciente Aleatório</button>
+             <button onclick="exportarDadosAdmin()">Exportar Dados (JSON)</button>
+             <button onclick="document.getElementById('importFileInput').click()">Importar Dados (JSON)</button>
+             <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importarDadosAdmin(event)">
          </div>
  
          <p>Voltar para o <a href="index.html">Cadastro de Exames</a></p>
@@ -207,197 +209,117 @@
          <h3>Editar Lista de Exames</h3>
          <textarea id="listaExamesEditor"></textarea><br>
          <div class="editor-buttons">
-             <button onclick="salvarListaExamesNoGitHub()">Salvar Alterações</button>
+             <button onclick="salvarListaExamesLocal()">Salvar Alterações</button>
              <button onclick="document.getElementById('editorExames').style.display='none'">Cancelar</button>
          </div>
      </div>
- 
+
      <script type="module">
-         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-         import { getFirestore, collection, getDocs, query, limit, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
- 
-         const firebaseConfig = {
-             apiKey: "AIzaSyA_LEim5s-_NSCk3ySVCcUzDjIq0RPlvnA",
-             authDomain: "sislab-cetep.firebaseapp.com",
-             projectId: "sislab-cetep",
-             storageBucket: "sislab-cetep.firebasestorage.app",
-             messagingSenderId: "958611861664",
-             appId: "1:958611861664:web:97a3755f2b1958b0c8d9c5",
-             measurementId: "G-3TL54MWJFS"
-         };
- 
-         const app = initializeApp(firebaseConfig);
-         const db = getFirestore(app);
- 
-         window.firestoreDb = db;
-         window.firebaseFirestoreCollection = collection;
-         window.firebaseFirestoreGetDocs = getDocs;
-         window.firebaseFirestoreQuery = query;
-         window.firebaseFirestoreLimit = limit;
-         window.firebaseFirestoreWriteBatch = writeBatch;
-         window.firebaseFirestoreOrderBy = orderBy;
+         import { clearHistorico, exportarDados, importarDados, getListaExamesCache, setListaExamesCache } from './data_storage.js';
+         window.SislabStorage = { clearHistorico, exportarDados, importarDados, getListaExamesCache, setListaExamesCache };
      </script>
- 
+
      <script>
          const SENHA_BASE_SISLAB_ADMIN = "sislab";
- 
-         async function mostrarLogGeralInventario() {
-             const now = new Date();
-             const hour = now.getHours().toString().padStart(2, '0');
-             const minute = now.getMinutes().toString().padStart(2, '0');
-             const SENHA_DINAMICA_ESPERADA = SENHA_BASE_SISLAB_ADMIN + hour + minute;
- 
-             const senhaDigitada = prompt(`Para acessar o Log Geral, digite a senha.`);
-             if (senhaDigitada === null) {
-                 alert("Acesso cancelado.");
-                 return;
-             }
-             if (senhaDigitada === SENHA_DINAMICA_ESPERADA) {
-                 alert("Redirecionando para a página do Log Geral de Inventário.");
-                 window.location.href = 'log_inventario.html';
-             } else {
-                 alert('Senha incorreta. Acesso negado ao Log Geral.');
-             }
-         }
- 
-         async function limparHistoricoAdmin() {
-             const now = new Date();
-             const hour = now.getHours().toString().padStart(2, '0');
-             const minute = now.getMinutes().toString().padStart(2, '0');
-             const SENHA_DINAMICA_ESPERADA = SENHA_BASE_SISLAB_ADMIN + hour + minute;
- 
-             const senhaDigitada = prompt(`Para limpar o histórico, digite a senha`);
-             if (senhaDigitada === null) {
-                 return;
-             }
-             if (senhaDigitada === SENHA_DINAMICA_ESPERADA) {
-                 if (typeof window.firestoreDb === 'undefined' || !window.firestoreDb) {
-                     alert("Firestore não inicializado. Limpeza de histórico desabilitada.");
-                     return;
-                 }
-                 const confirmDeleteAll = confirm("Tem certeza que deseja apagar TODO o histórico do Firebase? Esta ação é irreversível e apagará todos os dados de pacientes!");
-                 if (!confirmDeleteAll) {
-                     return;
-                 }
- 
-                 try {
-                     const historicoRef = window.firebaseFirestoreCollection(window.firestoreDb, 'historico');
-                     const batchSize = 100;
- 
-                     const deleteQueryBatch = async (dbInstance, queryToDelete) => {
-                         const snapshot = await window.firebaseFirestoreGetDocs(queryToDelete);
-                         if (snapshot.empty) {
-                             return 0;
-                         }
-                         const batch = window.firebaseFirestoreWriteBatch(dbInstance);
-                         snapshot.docs.forEach(d => {
-                             batch.delete(d.ref);
-                         });
-                         await batch.commit();
-                         return snapshot.size;
-                     };
- 
-                     let totalDeleted = 0;
-                     let deletedCount;
-                     do {
-                         const q = window.firebaseFirestoreQuery(historicoRef, window.firebaseFirestoreLimit(batchSize));
-                         deletedCount = await deleteQueryBatch(window.firestoreDb, q);
-                         totalDeleted += deletedCount;
-                         console.log(`Apagados ${deletedCount} documentos. Total: ${totalDeleted}`);
-                         await new Promise(resolve => setTimeout(resolve, 50));
-                     } while (deletedCount === batchSize);
- 
-                     alert(`Histórico apagado com sucesso do Firebase! Total de ${totalDeleted} registros.`);
-                 } catch (error) {
-                     console.error("Erro ao limpar histórico do Firebase:", error);
-                     alert("Erro ao limpar histórico do Firebase. Verifique o console e regras do Firestore.");
-                 }
- 
-             } else {
-                 alert('Senha incorreta. Histórico não foi limpo.');
-             }
-         }
- 
-         async function gerarNovoPacienteAleatorio() {
-             alert("Uma nova aba será aberta para gerar um paciente aleatório.");
-             window.open('index.html?gerar=ficticio', '_blank');
-         }
- 
-         /* JavaScript migrado de lista-exames.html para controle do editor de lista de exames */
-         const GITHUB_USERNAME = 'hyskal';
-         const GIST_ID = '1c13fc257a5a7f42e09303eaf26da670';
-         const GIST_FILENAME = 'exames.txt';
- 
+
          function gerarSenhaAtual() {
              const agora = new Date();
              const horas = agora.getHours().toString().padStart(2, '0');
              const minutos = agora.getMinutes().toString().padStart(2, '0');
-             return 'sislab' + horas + minutos;
+             return SENHA_BASE_SISLAB_ADMIN + horas + minutos;
          }
- 
-         function tokenGist() {
-             const a = 'ghp_';
-             const b = 'PksP';
-             const c = 'EYHmMl';
-             const d = 'xrC06k';
-             const e = 'c5lqB5';
-             const f = 'pbeq63';
-             const g = 'gT2Z3QV9';
-             return a + b + c + d + e + f + g;
+
+         async function limparHistoricoAdmin() {
+             const senhaDigitada = prompt(`Para limpar o histórico, digite a senha`);
+             if (senhaDigitada === null) {
+                 return;
+             }
+             if (senhaDigitada !== gerarSenhaAtual()) {
+                 alert('Senha incorreta. Histórico não foi limpo.');
+                 return;
+             }
+             const confirmDeleteAll = confirm("Tem certeza que deseja apagar TODO o histórico? Esta ação é irreversível e apagará todos os dados de pacientes!");
+             if (!confirmDeleteAll) {
+                 return;
+             }
+             if (typeof window.SislabStorage === 'undefined' || !window.SislabStorage.clearHistorico) {
+                 alert("Módulo de armazenamento não inicializado. Tente novamente em instantes.");
+                 return;
+             }
+             window.SislabStorage.clearHistorico();
+             alert("Histórico apagado com sucesso!");
          }
- 
+
+         async function gerarNovoPacienteAleatorio() {
+             alert("Uma nova aba será aberta para gerar um paciente aleatório.");
+             window.open('index.html?gerar=ficticio', '_blank');
+         }
+
          async function editarListaExamesComSenha() {
              const senhaDigitada = prompt("Digite a senha:");
-             const senhaCorreta = gerarSenhaAtual();
- 
-             if (senhaDigitada !== senhaCorreta) {
+             if (senhaDigitada !== gerarSenhaAtual()) {
                  alert("Senha incorreta.");
                  return;
              }
- 
-             try {
-                 const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                     headers: { Authorization: `token ${tokenGist()}` }
-                 });
-                 const data = await response.json();
-                 const conteudo = data.files["exames.txt"].content;
-                 document.getElementById("listaExamesEditor").value = conteudo;
-                 document.getElementById("editorExames").style.display = "block";
-             } catch (error) {
-                 alert("Erro ao carregar exames: " + error.message);
+
+             let conteudo = '';
+             if (window.SislabStorage && window.SislabStorage.getListaExamesCache) {
+                 conteudo = window.SislabStorage.getListaExamesCache() || '';
              }
-         }
- 
-         async function salvarListaExamesNoGitHub() {
-             const novoConteudo = document.getElementById("listaExamesEditor").value;
- 
-             try {
-                 const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                     method: "PATCH",
-                     headers: {
-                         Authorization: `token ${tokenGist()}`,
-                         "Content-Type": "application/json"
-                     },
-                     body: JSON.stringify({
-                         files: {
-                             "exames.txt": {
-                                 content: novoConteudo
-                             }
-                         }
-                     })
-                 });
- 
-                 if (response.ok) {
-                     alert("Lista de exames atualizada com sucesso!");
-                     document.getElementById("editorExames").style.display = "none";
-                 } else {
-                     alert("Erro ao salvar: " + response.statusText);
+             if (!conteudo) {
+                 try {
+                     const response = await fetch('lista-de-exames.txt');
+                     if (response.ok) {
+                         conteudo = await response.text();
+                     }
+                 } catch (error) {
+                     console.warn("Não foi possível carregar lista-de-exames.txt:", error.message);
                  }
-             } catch (error) {
-                 alert("Erro ao salvar: " + error.message);
              }
+             document.getElementById("listaExamesEditor").value = conteudo;
+             document.getElementById("editorExames").style.display = "block";
+         }
+
+         function salvarListaExamesLocal() {
+             const novoConteudo = document.getElementById("listaExamesEditor").value;
+             if (window.SislabStorage && window.SislabStorage.setListaExamesCache) {
+                 window.SislabStorage.setListaExamesCache(novoConteudo);
+             } else {
+                 localStorage.setItem('sislab_lista_exames', novoConteudo);
+             }
+             alert("Lista de exames salva localmente com sucesso!");
+             document.getElementById("editorExames").style.display = "none";
+         }
+
+         function exportarDadosAdmin() {
+             if (typeof window.SislabStorage === 'undefined' || !window.SislabStorage.exportarDados) {
+                 alert("Módulo de armazenamento não inicializado. Tente novamente em instantes.");
+                 return;
+             }
+             window.SislabStorage.exportarDados();
+         }
+
+         async function importarDadosAdmin(event) {
+             const file = event.target.files[0];
+             if (!file) return;
+             if (typeof window.SislabStorage === 'undefined' || !window.SislabStorage.importarDados) {
+                 alert("Módulo de armazenamento não inicializado. Tente novamente em instantes.");
+                 return;
+             }
+             try {
+                 const text = await file.text();
+                 const result = window.SislabStorage.importarDados(text);
+                 alert(
+                     `Importação concluída!\n\n` +
+                     `Histórico: ${result.addedHistorico} adicionados, ${result.skippedHistorico} ignorados (duplicados)\n` +
+                     `Laudos: ${result.addedLaudos} adicionados, ${result.skippedLaudos} ignorados (duplicados)`
+                 );
+             } catch (err) {
+                 alert('Erro ao importar dados: ' + err.message);
+             }
+             event.target.value = '';
          }
      </script>
- 
+
  </body>
  </html>

@@ -13,10 +13,11 @@
     .tube:nth-child(2) .tube-cap { background-color: #FFD700; }
     .tube:nth-child(3) .tube-cap { background-color: #CC3333; }
     h1 { color: #1A2B4C; border-bottom: 3px solid #CC3333; font-size: 2.5em; }
-    button { padding: 10px 20px; background-color: #1A2B4C; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; }
+    button { padding: 10px 20px; background-color: #1A2B4C; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; margin: 5px; }
     button:hover { background-color: #0F1D33; }
     #editorExames { display: none; margin-top: 20px; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px; margin-left: auto; margin-right: auto; }
     textarea { width: 100%; height: 300px; padding: 10px; font-family: monospace; font-size: 1em; border: 1px solid #ccc; box-sizing: border-box; resize: vertical; }
+    p.info { color: #555; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -30,20 +31,23 @@
     <h1 class="main-title">SISLAB - Editor de Lista de Exames</h1>
   </div>
 
+  <p class="info">As alterações são salvas localmente no navegador.</p>
   <button onclick="editarListaExamesComSenha()">Editar Lista de Exames</button>
+  <button onclick="window.location.href='admin.html'">Voltar ao Admin</button>
 
   <div id="editorExames">
     <h3>Editar Lista de Exames</h3>
     <textarea id="listaExamesEditor"></textarea><br><br>
-    <button onclick="salvarListaExamesNoGitHub()">Salvar Alterações</button>
+    <button onclick="salvarListaExamesLocal()">Salvar Alterações</button>
     <button onclick="document.getElementById('editorExames').style.display='none'">Cancelar</button>
   </div>
 
-  <script>
-    const GITHUB_USERNAME = 'hyskal';
-    const GIST_ID = '1c13fc257a5a7f42e09303eaf26da670';
-    const GIST_FILENAME = 'exames.txt';
+  <script type="module">
+    import { getListaExamesCache, setListaExamesCache } from './data_storage.js';
+    window._listaCache = { get: getListaExamesCache, set: setListaExamesCache };
+  </script>
 
+  <script>
     function gerarSenhaAtual() {
       const agora = new Date();
       const horas = agora.getHours().toString().padStart(2, '0');
@@ -51,68 +55,38 @@
       return 'sislab' + horas + minutos;
     }
 
-    function tokenGist() {
-      // Token ofuscado em fragmentos
-      const a = 'ghp_';
-      const b = 'PksP';
-      const c = 'EYHmMl';
-      const d = 'xrC06k';
-      const e = 'c5lqB5';
-      const f = 'pbeq63';
-      const g = 'gT2Z3QV9';
-      return a + b + c + d + e + f + g;
-    }
-
     async function editarListaExamesComSenha() {
-      const senhaDigitada = prompt("Digite a senha (formato: sislabHHmm):");
-      const senhaCorreta = gerarSenhaAtual();
-
-      if (senhaDigitada !== senhaCorreta) {
+      const senhaDigitada = prompt("Digite a senha:");
+      if (senhaDigitada !== gerarSenhaAtual()) {
         alert("Senha incorreta.");
         return;
       }
 
-      try {
-        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-          headers: { Authorization: `token ${tokenGist()}` }
-        });
-        const data = await response.json();
-        const conteudo = data.files[GIST_FILENAME].content;
-        document.getElementById("listaExamesEditor").value = conteudo;
-        document.getElementById("editorExames").style.display = "block";
-      } catch (error) {
-        alert("Erro ao carregar exames: " + error.message);
+      let conteudo = '';
+      if (window._listaCache && window._listaCache.get) {
+        conteudo = window._listaCache.get() || '';
       }
+      if (!conteudo) {
+        try {
+          const resp = await fetch('lista-de-exames.txt');
+          if (resp.ok) conteudo = await resp.text();
+        } catch (e) {
+          console.warn("Não foi possível carregar lista-de-exames.txt");
+        }
+      }
+      document.getElementById("listaExamesEditor").value = conteudo;
+      document.getElementById("editorExames").style.display = "block";
     }
 
-    async function salvarListaExamesNoGitHub() {
-      const novoConteudo = document.getElementById("listaExamesEditor").value;
-
-      try {
-        const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-          method: "PATCH",
-          headers: {
-            Authorization: `token ${tokenGist()}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            files: {
-              [GIST_FILENAME]: {
-                content: novoConteudo
-              }
-            }
-          })
-        });
-
-        if (response.ok) {
-          alert("Lista de exames atualizada com sucesso!");
-          document.getElementById("editorExames").style.display = "none";
-        } else {
-          alert("Erro ao salvar: " + response.statusText);
-        }
-      } catch (error) {
-        alert("Erro ao salvar: " + error.message);
+    function salvarListaExamesLocal() {
+      const conteudo = document.getElementById("listaExamesEditor").value;
+      if (window._listaCache && window._listaCache.set) {
+        window._listaCache.set(conteudo);
+      } else {
+        localStorage.setItem('sislab_lista_exames', conteudo);
       }
+      alert("Lista de exames salva localmente com sucesso!");
+      document.getElementById("editorExames").style.display = "none";
     }
   </script>
 

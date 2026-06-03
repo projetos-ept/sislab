@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>SISLAB 2.0.5 - Cadastro de Exames (CETEP/LNAB)</title>
+    <title>SISLAB 2.1.0 - Cadastro de Exames (CETEP/LNAB)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         /* Seção 1: Estilos Gerais do Corpo e Títulos */
@@ -702,7 +702,7 @@
     <div id="editorExames" style="display:none; margin-top:20px; background-color:white; padding:20px; border-radius:8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
         <h3>Editar Lista de Exames</h3>
         <textarea id="listaExamesEditor" rows="15" style="width:100%; border:1px solid #ccc; padding:10px; box-sizing:border-box;"></textarea><br>
-        <button onclick="salvarListaExamesNoGitHub()">Salvar Alterações</button>
+        <button onclick="salvarListaExamesLocal()">Salvar Alterações</button>
         <button onclick="document.getElementById('editorExames').style.display='none';">Cancelar</button>
     </div>
 
@@ -725,54 +725,7 @@
 
     <div class="print-footer" id="printFooter"></div>
 
-    <script type="module">
-        // Import the functions you need from the SDKs you need
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-        // Importar TODOS os módulos do Firestore que serão usados
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, doc, writeBatch, where, serverTimestamp, getDoc, FieldValue } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-        // Não é necessário importar Analytics se você não o usa neste script específico
-        // import { getAnalytics } = "https://www.gstatic.com/firebasejs/11.10.0/firebase-analytics.js";
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyA_LEim5s-_NSCk3ySVCcUzDjIq0RPlvnA",
-            authDomain: "sislab-cetep.firebaseapp.com",
-            projectId: "sislab-cetep",
-            storageBucket: "sislab-cetep.firebasestorage.app",
-            messagingSenderId: "958611861664",
-            appId: "1:958611861664:web:97a3755f2b1958b0c8d9c5",
-            // measurementId: "G-3TL54MWJFS" // Descomente se for usar Analytics globalmente
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app); // Inicializa o Firestore
-        // const analytics = getAnalytics(app); // Inicializa o Analytics se measurementId estiver configurado
-
-        // --- Torna as instâncias e funções do Firebase acessíveis globalmente ---
-        // Isso permite que o script.js (que é um script 'clássico') as use
-        window.firebaseApp = app;
-        window.firestoreDb = db;
-        // window.firebaseAnalytics = analytics; // Torna Analytics global se for usar
-
-        // Funções do Firestore para usar no script.js
-        window.firebaseFirestoreCollection = collection;
-        window.firebaseFirestoreAddDoc = addDoc;
-        window.firebaseFirestoreGetDocs = getDocs;
-        window.firebaseFirestoreQuery = query;
-        window.firebaseFirestoreOrderBy = orderBy;
-        window.firebaseFirestoreLimit = limit;
-        window.firebaseFirestoreDeleteDoc = deleteDoc;
-        window.firebaseFirestoreDoc = doc;
-        window.firebaseFirestoreWriteBatch = writeBatch;
-        window.firebaseFirestoreWhere = where;
-        window.firebaseFirestoreServerTimestamp = serverTimestamp;
-        window.firebaseFirestoreGetDoc = getDoc;
-        // Se precisar de FieldValue (para timestamp), importe também
-        window.firebaseFirestoreFieldValue = FieldValue;
-
-    </script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
     <script type="module" src="busca_historico.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
