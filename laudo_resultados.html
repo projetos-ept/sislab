@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>SISLAB - Emissão de Laudos</title>
+    <title>SISLAB - Emissão de Laudos v2.1.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         /* Estilos gerais do corpo e títulos */
@@ -410,43 +410,6 @@
         </div>
     </div>
 
-    <script type="module">
-        // Importa as funções do SDK do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, doc, updateDoc, where, serverTimestamp, getDoc, runTransaction, Timestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-
-        // Sua configuração do Firebase (Mesma do index.html e inventario.html)
-        const firebaseConfig = {
-            apiKey: "AIzaSyA_LEim5s-_NSCk3ySVCcUzDjIq0RPlvnA",
-            authDomain: "sislab-cetep.firebaseapp.com",
-            projectId: "sislab-cetep",
-            storageBucket: "sislab-cetep.firebasestorage.app",
-            messagingSenderId: "958611861664",
-            appId: "1:958611861664:web:97a3755f2b1958b0c8d9c5",
-        };
-
-        // Inicializa o Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // --- Torna as instâncias e funções do Firebase acessíveis globalmente ---
-        window.firestoreDb = db;
-        window.firebaseFirestoreCollection = collection;
-        window.firebaseFirestoreAddDoc = addDoc;
-        window.firebaseFirestoreGetDocs = getDocs;
-        window.firebaseFirestoreQuery = query;
-        window.firebaseFirestoreOrderBy = orderBy;
-        window.firebaseFirestoreLimit = limit;
-        window.firebaseFirestoreDeleteDoc = deleteDoc;
-        window.firebaseFirestoreDoc = doc;
-        window.firebaseFirestoreUpdateDoc = updateDoc;
-        window.firebaseFirestoreWhere = where;
-        window.firebaseFirestoreServerTimestamp = serverTimestamp;
-        window.firebaseFirestoreGetDoc = getDoc;
-        window.firebaseFirestoreRunTransaction = runTransaction;
-        window.firebaseFirestoreTimestamp = Timestamp;
-    </script>
-    <script src="sislab_utils.js" type="module"></script>
     <script src="laudo_scripts.js" type="module"></script>
 
 </body>
