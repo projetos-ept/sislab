@@ -28,34 +28,11 @@
             flex-wrap: wrap;
         }
 
-        /* Logomarca SISLAB em CSS puros */
-        .sislab-logo {
-            width: 70px;
+        .smartlab-logo {
+            width: 180px;
             height: 50px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
+            flex-shrink: 0;
         }
-        .tube {
-            background-color: #f0f0f0;
-            width: 15px;
-            height: 40px;
-            border-radius: 4px 4px 2px 2px;
-            position: relative;
-            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2);
-        }
-        .tube-cap {
-            width: 17px;
-            height: 7px;
-            position: absolute;
-            top: -7px;
-            left: -1px;
-            border-radius: 4px 4px 0 0;
-            box-shadow: 0 -1px 3px rgba(0,0,0,0.2);
-        }
-        .tube:nth-child(1) .tube-cap { background-color: #800080; } /* Roxo */
-        .tube:nth-child(2) .tube-cap { background-color: #FFD700; } /* Amarelo dourado */
-        .tube:nth-child(3) .tube-cap { background-color: #CC3333; } /* Vermelho */
 
         h1 {
             color: #1A2B4C;
@@ -316,10 +293,19 @@
 </head>
 <body>
     <div class="main-header-container">
-        <div class="sislab-logo">
-            <div class="tube tube-1"><div class="tube-cap"></div></div>
-            <div class="tube tube-2"><div class="tube-cap"></div></div>
-            <div class="tube tube-3"><div class="tube-cap"></div></div>
+        <div class="smartlab-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110" width="100%" height="100%">
+            <g transform="translate(200, 5)">
+              <text y="55" text-anchor="middle"
+                style="font-family:'Montserrat','Arial Black',sans-serif;font-size:64px;font-weight:900;fill:#1d3557;letter-spacing:-2.5px">Smart<tspan
+                style="font-family:'Montserrat','Arial',sans-serif;font-weight:300;fill:#00b4d8;letter-spacing:-1.5px">Lab</tspan></text>
+              <g transform="translate(-100, 65)">
+                <rect width="200" height="28" rx="4" ry="4" style="stroke:#1d3557;stroke-width:2;fill:none"/>
+                <text x="100" y="19" text-anchor="middle"
+                  style="font-family:'Montserrat','Arial',sans-serif;font-size:16px;font-weight:900;fill:#1d3557;letter-spacing:2px">CETEP / LNAB</text>
+              </g>
+            </g>
+          </svg>
         </div>
         <h1 class="main-title">SISLAB - Emissão de Laudos</h1>
     </div>

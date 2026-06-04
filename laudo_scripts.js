@@ -6,6 +6,32 @@ import { EXAM_DETAILS } from './exames_ref.js';
 
 let selectedPatientData = null;
 
+// ── Logo SmartLab para o PDF ──────────────────────────────────────────────────
+
+const SMARTLAB_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110"><g transform="translate(200,5)"><text y="55" text-anchor="middle" style="font-family:Arial Black,sans-serif;font-size:64px;font-weight:900;fill:#1d3557;letter-spacing:-2.5px">Smart<tspan style="font-weight:300;fill:#00b4d8;letter-spacing:-1.5px">Lab</tspan></text><g transform="translate(-100,65)"><rect width="200" height="28" rx="4" ry="4" style="stroke:#1d3557;stroke-width:2;fill:none"/><text x="100" y="19" text-anchor="middle" style="font-family:Arial,sans-serif;font-size:16px;font-weight:900;fill:#1d3557;letter-spacing:2px">CETEP / LNAB</text></g></g></svg>`;
+
+let smartlabLogoDataUrl = null;
+
+async function loadSmartlabLogo() {
+    try {
+        const blob = new Blob([SMARTLAB_SVG], { type: 'image/svg+xml' });
+        const url  = URL.createObjectURL(blob);
+        await new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 400; canvas.height = 110;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+                smartlabLogoDataUrl = canvas.toDataURL('image/png');
+                resolve();
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+            img.src = url;
+        });
+    } catch (_) {}
+}
+
 // ── Utilitários ───────────────────────────────────────────────────────────────
 
 function calcularIdade(dataString) {
@@ -28,6 +54,7 @@ function sanitizePdfText(v) {
 // ── Inicialização ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadSmartlabLogo();
     document.getElementById('searchPatientBtn')?.addEventListener('click', searchPatient);
     document.getElementById('clearSearchBtn')?.addEventListener('click', clearSearchAndPatientData);
     document.getElementById('saveLaudoBtn')?.addEventListener('click', saveLaudo);
@@ -390,6 +417,7 @@ function generatePdfLaudo() {
             105, 285, null, null, 'center');
         doc.addPage(); y = 15;
         doc.addImage(logoUrl, 'PNG', mx, 10, 20, 20);
+        if (smartlabLogoDataUrl) doc.addImage(smartlabLogoDataUrl, 'PNG', 145, 14, 45, 12);
         doc.setFontSize(18); doc.text('Laboratório de Análises Clínicas CETEP/LNAB', 105, y, null, null, 'center'); y += 10;
         doc.setFontSize(10); doc.text(`Data: ${laudoDate.split(' ')[0]} - Hora: ${laudoDate.split(' ')[1]}`, 105, y, null, null, 'center'); y += 5;
         doc.setFontSize(8);
@@ -404,6 +432,7 @@ function generatePdfLaudo() {
     try {
         // Cabeçalho — página 1
         doc.addImage(logoUrl, 'PNG', mx, 10, 20, 20);
+        if (smartlabLogoDataUrl) doc.addImage(smartlabLogoDataUrl, 'PNG', 145, 14, 45, 12);
         doc.setFontSize(18); doc.text('Laboratório de Análises Clínicas CETEP/LNAB', 105, y, null, null, 'center'); y += 10;
         doc.setFontSize(10); doc.text(`Data: ${laudoDate.split(' ')[0]} - Hora: ${laudoDate.split(' ')[1]}`, 105, y, null, null, 'center'); y += 5;
         doc.setFontSize(8);
