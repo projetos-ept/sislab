@@ -116,6 +116,7 @@ Interface para preencher resultados de exames e gerar laudos em PDF.
 - Carregamento automático dos dados do paciente e da lista de exames do protocolo
 - Campos dinâmicos por exame: resultado, unidade, valores de referência (pré-preenchidos), material de coleta, método e observação específica
 - Modo somente leitura por padrão; edição item a item com botão "Editar"
+- **Exame avulso:** botão "+ Adicionar Exame Não Listado" insere um item com todos os campos livres (nome, material, método, resultado, unidade, referência, observação); identificado com borda verde; salvo com `custom: true` no laudo e recarregado corretamente na próxima edição
 - Observações gerais do laudo
 - Responsável técnico (nome e registro CRBM/CRF) persistido entre laudos
 - Geração de PDF do laudo com logo, dados do paciente, exames e assinatura
