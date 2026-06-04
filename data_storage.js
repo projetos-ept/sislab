@@ -23,6 +23,15 @@ function saveHistorico(data) {
   localStorage.setItem(KEYS.historico, JSON.stringify(data));
 }
 
+export function getNextProtocolNumber() {
+  const historico = getHistorico();
+  if (historico.length === 0) return 1;
+  return historico.reduce((max, e) => {
+    const n = parseInt((e.protocolo || '').split('-')[0]) || 0;
+    return n > max ? n : max;
+  }, 0) + 1;
+}
+
 export function addProtocolo(entry) {
   const historico = getHistorico();
   if (!entry.id) entry.id = generateId();
