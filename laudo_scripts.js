@@ -417,7 +417,7 @@ function generatePdfLaudo() {
             105, 285, null, null, 'center');
         doc.addPage(); y = 15;
         doc.addImage(logoUrl, 'PNG', mx, 10, 20, 20);
-        if (smartlabLogoDataUrl) doc.addImage(smartlabLogoDataUrl, 'PNG', 145, 14, 45, 12);
+        if (smartlabLogoDataUrl) doc.addImage(smartlabLogoDataUrl, 'PNG', 152, 15, 38, 10);
         doc.setFontSize(18); doc.text('Laboratório de Análises Clínicas CETEP/LNAB', 105, y, null, null, 'center'); y += 10;
         doc.setFontSize(10); doc.text(`Data: ${laudoDate.split(' ')[0]} - Hora: ${laudoDate.split(' ')[1]}`, 105, y, null, null, 'center'); y += 5;
         doc.setFontSize(8);
@@ -432,7 +432,7 @@ function generatePdfLaudo() {
     try {
         // Cabeçalho — página 1
         doc.addImage(logoUrl, 'PNG', mx, 10, 20, 20);
-        if (smartlabLogoDataUrl) doc.addImage(smartlabLogoDataUrl, 'PNG', 145, 14, 45, 12);
+        if (smartlabLogoDataUrl) doc.addImage(smartlabLogoDataUrl, 'PNG', 152, 15, 38, 10);
         doc.setFontSize(18); doc.text('Laboratório de Análises Clínicas CETEP/LNAB', 105, y, null, null, 'center'); y += 10;
         doc.setFontSize(10); doc.text(`Data: ${laudoDate.split(' ')[0]} - Hora: ${laudoDate.split(' ')[1]}`, 105, y, null, null, 'center'); y += 5;
         doc.setFontSize(8);
