@@ -288,6 +288,25 @@
             font-size: 0.9em;
             color: #333;
         }
+        .exam-result-item.custom-exam {
+            border-left: 4px solid #28a745;
+            background-color: #f8fff9;
+        }
+        .custom-exam-badge {
+            display: inline-block;
+            font-size: 0.75em;
+            color: #28a745;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .remove-exam-btn {
+            background-color: #CC3333;
+            font-size: 0.85em;
+            padding: 5px 10px;
+        }
+        .remove-exam-btn:hover {
+            background-color: #a02222;
+        }
         .error-message {
             color: #CC3333;
             font-size: 0.85em;
@@ -341,43 +360,10 @@
 
         <div class="results-input-section" style="display: none;">
             <h2>Resultados dos Exames:</h2>
-            <div id="examResultsContainer">
-                <div class="exam-result-item read-only" data-exam-id="exam-0-Creatinina" data-exam-name="Creatinina (Creat)">
-                    <div class="exam-item-header">
-                        <strong>Creatinina (Creat)</strong>
-                    </div>
-                    <div class="mat-met-row">
-                        <div class="field-group">
-                            <label>Material:</label>
-                            <select class="exam-material-value" readonly="true" disabled="true">
-                                <option value="Soro" selected="">Soro</option>
-                                <option value="Urina">Urina</option>
-                            </select>
-                        </div>
-                        <div class="field-group">
-                            <label>Método:</label>
-                            <select class="exam-method-value" readonly="true" disabled="true">
-                                <option value="Colorimétrico (Jaffe)" selected="">Colorimétrico (Jaffe)</option>
-                                <option value="Enzimático">Enzimático</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="result-row">
-                        <div>
-                            <label>Resultado / Unidade de Medida / Valores de Referência:</label>
-                        </div>
-                        <div class="result-inputs">
-                            <input type="text" class="exam-result-value" value="0.9" placeholder="Resultado" readonly="true">
-                            <input type="text" class="exam-unit-value" value="mg/dL" placeholder="Unidade" readonly="true">
-                            <input type="text" class="exam-ref-value" value="0.5 - 0.9 mg/dL" placeholder="Ref. (opcional)" readonly="true">
-                        </div>
-                    </div>
-                    <textarea class="exam-observation" rows="2" placeholder="Observações específicas para este exame." readonly="true">A creatinina é um produto do metabolismo muscular, filtrado e excretado pelos rins, o que a torna um indicador fundamental da função renal. Níveis séricos elevados podem indicar um comprometimento significativo da filtração renal, geralmente em torno de 40% a 50%. Variações podem sinalizar problemas renais crônicos ou agudos, necessitando de investigação médica especializada.</textarea>
-                    <div class="edit-button-container">
-                        <button class="edit-exam-btn" data-action="edit">Editar</button>
-                    </div>
-                </div>
+            <div id="examResultsContainer"></div>
 
+            <div style="margin: 12px 0 4px 0;">
+                <button id="addAvulsoBtn" style="background-color:#28a745">+ Adicionar Exame Não Listado</button>
             </div>
 
             <div class="form-row" style="margin-top: 20px;">
