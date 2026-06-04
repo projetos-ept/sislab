@@ -1,7 +1,7 @@
 // VERSÃO: 2.1.0 (script.js)
 
 import {
-    getHistorico, addProtocolo, deleteProtocolos,
+    getHistorico, getNextProtocolNumber, addProtocolo, deleteProtocolos,
     clearHistorico, getProtocoloById, findByCpf,
     getListaExamesCache, setListaExamesCache
 } from './data_storage.js';
@@ -316,10 +316,10 @@ async function salvarProtocoloAtendimento() {
     try { dados = coletarDados(); } catch (e) { alert(e.message); return; }
 
     const pad2 = n => n.toString().padStart(2, '0');
-    const pad4 = n => n.toString().padStart(4, '0');
     const now = new Date();
-    // Formato: DDMMaaaa-HHMMss — baseado em data+hora+segundos, único entre dispositivos
-    dados.protocolo = `${pad2(now.getDate())}${pad2(now.getMonth() + 1)}${pad4(now.getFullYear())}-${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
+    const num = getNextProtocolNumber().toString().padStart(4, '0');
+    // Formato: NNNN-HHMMDDmm — o sufixo de hora+data garante unicidade entre dispositivos
+    dados.protocolo = `${num}-${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getDate())}${pad2(now.getMonth() + 1)}`;
     dados.timestamp = Date.now();
     addProtocolo(dados);
 
