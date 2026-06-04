@@ -45,7 +45,33 @@ class Laudo(Base):
     synced       = Column(Boolean, default=True)
 
 
+class ExamList(Base):
+    __tablename__ = 'exam_list'
+    id      = Column(String, primary_key=True, default='singleton')
+    conteudo = Column(Text, default='')   # newline-separated, sorted
+
+
 Base.metadata.create_all(engine)
+
+
+# ── Helpers de lista de exames ────────────────────────────────────────────
+
+def get_exam_list(session) -> str:
+    row = session.get(ExamList, 'singleton')
+    return row.conteudo if row else ''
+
+
+def merge_exam_list(session, incoming: str):
+    current = get_exam_list(session)
+    local_lines  = [l.strip() for l in current.split('\n')  if l.strip()]
+    remote_lines = [l.strip() for l in incoming.split('\n') if l.strip()]
+    merged = sorted(set(local_lines) | set(remote_lines), key=lambda x: x.lower())
+    merged_text = '\n'.join(merged)
+    row = session.get(ExamList, 'singleton')
+    if row is None:
+        session.add(ExamList(id='singleton', conteudo=merged_text))
+    else:
+        row.conteudo = merged_text
 
 
 # ── Autenticação ──────────────────────────────────────────────────────────
@@ -76,6 +102,8 @@ def push():
     historico = body.get('historico', [])
     laudos    = body.get('laudos', [])
     processados = 0
+
+    lista_exames = body.get('listaExames', '')
 
     with Session(engine) as session:
         for entry in historico:
@@ -118,6 +146,9 @@ def push():
                     existing.dados_json   = json.dumps(laudo, ensure_ascii=False)
                     existing.data_emissao = ts_remote
 
+        if lista_exames:
+            merge_exam_list(session, lista_exames)
+
         session.commit()
 
     return jsonify({'ok': True, 'processados': processados})
@@ -145,8 +176,9 @@ def pull():
             row_to_dict(r.dados_json)
             for r in session.query(Laudo).filter(Laudo.data_emissao > since_str).all()
         ]
+        lista_exames = get_exam_list(session)
 
-    return jsonify({'historico': historico, 'laudos': laudos})
+    return jsonify({'historico': historico, 'laudos': laudos, 'listaExames': lista_exames})
 
 
 @app.get('/api/sislab/status')
