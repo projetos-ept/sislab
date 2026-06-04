@@ -49,7 +49,7 @@ async function carregarExames() {
             if (resp.ok) { texto = await resp.text(); setListaExamesCache(texto); }
         } catch (_) {}
     }
-    listaExames = texto ? texto.trim().split('\n').map(e => e.trim()).filter(Boolean) : [];
+    listaExames = texto ? texto.trim().split('\n').map(e => e.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR')) : [];
     renderListaExames();
     configurarPesquisa();
 }
@@ -95,7 +95,7 @@ function marcarExame(nome) {
         const container = document.getElementById('exames');
         container.appendChild(label);
         container.appendChild(document.createElement('br'));
-        if (!listaExames.includes(nome)) { listaExames.push(nome); listaExames.sort(); }
+        if (!listaExames.includes(nome)) { listaExames.push(nome); listaExames.sort((a, b) => a.localeCompare(b, 'pt-BR')); }
     }
     atualizarExamesSelecionadosDisplay();
 }

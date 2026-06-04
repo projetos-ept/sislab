@@ -119,7 +119,8 @@ export function exportarDados() {
     version: '2.1',
     exportDate: new Date().toISOString(),
     historico: getHistorico(),
-    laudos: getLaudos()
+    laudos: getLaudos(),
+    listaExames: getListaExamesCache() || ''
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -167,6 +168,13 @@ export function importarDados(jsonString) {
       }
     }
     saveLaudos(laudos);
+  }
+
+  if (typeof data.listaExames === 'string' && data.listaExames.trim()) {
+    const local = (getListaExamesCache() || '').trim().split('\n').map(e => e.trim()).filter(Boolean);
+    const imported = data.listaExames.trim().split('\n').map(e => e.trim()).filter(Boolean);
+    const merged = [...new Set([...local, ...imported])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    setListaExamesCache(merged.join('\n'));
   }
 
   return result;
@@ -233,6 +241,13 @@ export function importarDadosSync(data) {
       }
     }
     saveLaudos(laudos);
+  }
+
+  if (typeof data.listaExames === 'string' && data.listaExames.trim()) {
+    const local = (getListaExamesCache() || '').trim().split('\n').map(e => e.trim()).filter(Boolean);
+    const remote = data.listaExames.trim().split('\n').map(e => e.trim()).filter(Boolean);
+    const merged = [...new Set([...local, ...remote])].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    setListaExamesCache(merged.join('\n'));
   }
 
   return result;

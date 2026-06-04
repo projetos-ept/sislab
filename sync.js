@@ -3,7 +3,8 @@
 
 import {
   getPendingSync, markAsSynced, importarDadosSync,
-  getSyncConfig, getLastSyncAt, setLastSyncAt
+  getSyncConfig, getLastSyncAt, setLastSyncAt,
+  getListaExamesCache
 } from './data_storage.js';
 
 let _timer = null;
@@ -65,13 +66,14 @@ export async function sincronizarAgora() {
     const headers = { 'Content-Type': 'application/json' };
     if (config.apiKey) headers['X-API-Key'] = config.apiKey;
 
-    // 1. Push — envia registros locais não sincronizados
+    // 1. Push — envia registros locais não sincronizados + lista de exames atual
     const { historico: pendHist, laudos: pendLaudos } = getPendingSync();
-    if (pendHist.length > 0 || pendLaudos.length > 0) {
+    const listaExames = getListaExamesCache() || '';
+    if (pendHist.length > 0 || pendLaudos.length > 0 || listaExames) {
       const pushResp = await fetch(`${config.endpoint}/push`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ historico: pendHist, laudos: pendLaudos })
+        body: JSON.stringify({ historico: pendHist, laudos: pendLaudos, listaExames })
       });
       if (!pushResp.ok) throw new Error(`Push falhou: HTTP ${pushResp.status}`);
       markAsSynced(pendHist.map(e => e.id), 'historico');
