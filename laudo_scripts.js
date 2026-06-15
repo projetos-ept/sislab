@@ -268,7 +268,8 @@ function displayPatientData(p) {
     let idadeTexto = 'N/D';
     if (p.dataNasc) {
         const idade = calcularIdade(p.dataNasc);
-        if (idade) idadeTexto = `${idade.anos} anos${idade.meses ? ` e ${idade.meses} meses` : ''}`;
+        if (idade) idadeTexto = `${idade.anos} ${idade.anos === 1 ? 'ano' : 'anos'}` +
+            `${idade.meses ? ` e ${idade.meses} ${idade.meses === 1 ? 'mês' : 'meses'}` : ''}`;
     }
     document.getElementById('patientAge').textContent     = idadeTexto;
     document.getElementById('patientDOB').textContent     = p.dataNasc
@@ -512,6 +513,24 @@ function generatePdfLaudo() {
         doc.setTextColor(0, 0, 0);
         doc.addPage();
         y = renderLaudoHeader(doc, logoUrl, laudoDate);
+        if (title === 'EXAMES (Continuação):') {
+            const proto = document.getElementById('patientProtocol').textContent;
+            const nome  = document.getElementById('patientName').textContent;
+            const idade = document.getElementById('patientAge').textContent;
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineWidth(0.3);
+            doc.line(mx, y, 190, y);
+            y += 4;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`${proto}  |  ${nome}  |  ${idade}`, mx, y);
+            y += lh;
+            doc.setTextColor(0, 0, 0);
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.setFontSize(10);
+        }
         if (title) {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(11);
