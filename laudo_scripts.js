@@ -55,57 +55,64 @@ function renderLaudoHeader(doc, logoUrl, laudoDate) {
     const navy = [26, 43, 76];
     const blue = [0, 180, 216];
 
-    // ── Faixa superior escura
+    // ── Margem branca superior (≈7 mm / 20 px) — y=0..7 em branco
+
+    // ── Faixa escura: y=7, h=8
     doc.setFillColor(...navy);
-    doc.rect(0, 0, 210, 8, 'F');
+    doc.rect(0, 7, 210, 8, 'F');
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(`EMISSÃO: ${dateStr || ''}  |  ${timeStr || ''}`, 20, 5.5);
-    doc.text('WWW.CETEPNAB.COM.BR', 192, 5.5, null, null, 'right');
+    doc.text(`EMISSÃO: ${dateStr || ''}  |  ${timeStr || ''}`, 20, 12.5);
+    doc.text('@ cetep.lnab   |   WWW.CETEPNAB.COM.BR', 192, 12.5, null, null, 'right');
 
-    // ── Logo CETEP (esquerda)
-    try { doc.addImage(logoUrl, 'PNG', 13, 9, 22, 22); } catch (_) {}
-
-    // ── Logo SmartLab (direita)
+    // ── Logos alinhados com as linhas dos separadores (x=20 … x=190)
+    // CETEP: borda esquerda em x=20 (igual ao início da linha)
+    try { doc.addImage(logoUrl, 'PNG', 20, 16, 22, 22); } catch (_) {}
+    // SmartLab: borda direita em x=190 (42mm de largura → x=148)
     if (smartlabLogoDataUrl) {
-        try { doc.addImage(smartlabLogoDataUrl, 'PNG', 148, 13, 44, 12); } catch (_) {}
+        try { doc.addImage(smartlabLogoDataUrl, 'PNG', 148, 20, 42, 11); } catch (_) {}
     }
 
-    // ── Bloco central: nome, subtítulo, endereço, handle
+    // ── Nome principal (centro)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(17, 17, 17);
-    doc.text('LABORATÓRIO DE ANÁLISES CLÍNICAS', 105, 18, null, null, 'center');
+    doc.text('LABORATÓRIO DE ANÁLISES CLÍNICAS', 105, 25, null, null, 'center');
 
-    doc.setFontSize(11);
-    doc.setTextColor(...blue);
-    doc.text('CETEP / LNAB', 105, 24, null, null, 'center');
-
-    doc.setFont('helvetica', 'normal');
+    // ── Linha única: CETEP/LNAB (azul bold) + resto (cinza normal), centralizada
+    // Logos ocupam x=20-42 (CETEP) e x=148-190 (SmartLab) — texto abaixo de ambos (y=32)
     doc.setFontSize(7.5);
-    doc.setTextColor(100, 100, 100);
-    doc.text('R. Mario Laerte, 163 - Centro, Alagoinhas - BA  |  CEP: 48005-098', 105, 28.5, null, null, 'center');
+    const p1 = 'CETEP / LNAB';
+    const p2 = '  |  R. Mario Laerte, 163 - Centro, Alagoinhas - BA  |  CEP: 48005-098';
+    doc.setFont('helvetica', 'bold');
+    const w1 = doc.getTextWidth(p1);
+    doc.setFont('helvetica', 'normal');
+    const w2 = doc.getTextWidth(p2);
+    const sx = 105 - (w1 + w2) / 2;   // x de início do bloco centralizado
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
     doc.setTextColor(...blue);
-    doc.text('@ cetep.lnab', 105, 33, null, null, 'center');
+    doc.text(p1, sx, 32);
 
-    // ── Separadores duplos com RESULTADOS
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(90, 90, 90);
+    doc.text(p2, sx + w1, 32);
+
+    // ── Separadores duplos com RESULTADOS (após CETEP logo que termina em y=38)
     doc.setDrawColor(...navy);
     doc.setLineWidth(0.5);
-    doc.line(20, 37, 190, 37);
+    doc.line(20, 40, 190, 40);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
     doc.setTextColor(...navy);
     doc.setCharSpace(3);
-    doc.text('RESULTADOS', 105, 43.5, null, null, 'center');
+    doc.text('RESULTADOS', 105, 46.5, null, null, 'center');
     doc.setCharSpace(0);
 
     doc.setLineWidth(0.5);
-    doc.line(20, 46, 190, 46);
+    doc.line(20, 49, 190, 49);
 
     // ── Restaurar estado
     doc.setTextColor(0, 0, 0);
@@ -113,7 +120,7 @@ function renderLaudoHeader(doc, logoUrl, laudoDate) {
     doc.setFont('helvetica', 'normal');
     doc.setLineWidth(0.5);
 
-    return 54;
+    return 57; // y de início do conteúdo
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
