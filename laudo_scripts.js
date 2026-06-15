@@ -3,8 +3,25 @@
 import { searchHistorico, getProtocoloById, addOrUpdateLaudo, getLaudoByPatientId } from './data_storage.js';
 import { formatDateToDisplay, showError, clearError } from './sislab_utils.js';
 import { EXAM_DETAILS } from './exames_ref.js';
+import { sincronizarAgora } from './sync.js';
 
 let selectedPatientData = null;
+
+// ── Toast de sincronização ───────────────────────────────────────────────────
+
+function mostrarToastSync(mensagem, tipo) {
+    const toast = document.createElement('div');
+    toast.textContent = mensagem;
+    toast.style.cssText = [
+        'position:fixed', 'bottom:20px', 'right:20px', 'z-index:9999',
+        'padding:10px 18px', 'border-radius:6px', 'font-size:0.9em',
+        'color:#fff', 'box-shadow:0 2px 8px rgba(0,0,0,0.25)', 'transition:opacity 0.4s',
+        tipo === 'ok' ? 'background:#28a745' : tipo === 'erro' ? 'background:#CC3333' : 'background:#1A2B4C'
+    ].join(';');
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+    setTimeout(() => toast.remove(), 3500);
+}
 
 // ── Logo SmartLab para o PDF ──────────────────────────────────────────────────
 
@@ -441,6 +458,21 @@ async function saveLaudo() {
 
     try {
         const id = addOrUpdateLaudo(laudoData);
+
+        // Sync imediato fire-and-forget — localStorage já foi gravado acima.
+        document.addEventListener('sislab:sync-status', function onSync(e) {
+            const s = e.detail;
+            if (s.sincronizando) return;
+            if (!navigator.onLine) {
+                mostrarToastSync('Offline — será sincronizado pelo temporizador.', 'info');
+            } else if (s.erro && s.erro !== 'Endpoint não configurado.') {
+                mostrarToastSync('Erro de sincronização: ' + s.erro, 'erro');
+            } else if (!s.erro && s.pendentes === 0) {
+                mostrarToastSync('Laudo enviado ao servidor.', 'ok');
+            }
+        }, { once: true });
+        sincronizarAgora();
+
         alert(`Laudo salvo com sucesso! ID: ${id}`);
     } catch (err) {
         alert(`Erro ao salvar laudo: ${err.message}`);
