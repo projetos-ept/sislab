@@ -119,7 +119,8 @@ Interface para preencher resultados de exames e gerar laudos em PDF.
 - **Exame avulso:** botão "+ Adicionar Exame Não Listado" insere um item com todos os campos livres (nome, material, método, resultado, unidade, referência, observação); identificado com borda verde; salvo com `custom: true` no laudo e recarregado corretamente na próxima edição
 - Observações gerais do laudo
 - Responsável técnico (nome e registro CRBM/CRF) persistido entre laudos
-- Geração de PDF do laudo com logo, dados do paciente, exames e assinatura
+- Geração de PDF do laudo com cabeçalho profissional (faixa institucional, logos, RESULTADOS)
+- Identificação do paciente (protocolo | nome | idade) em páginas de continuação
 - Suporte a múltiplas páginas com cabeçalho e rodapé repetidos
 
 **Armazenamento:** chave `sislab_laudos` no localStorage.
@@ -199,7 +200,19 @@ Regra de deduplicação: registros cujo `protocolo` já existe são **ignorados 
 
 ## Sincronização via API REST (`sync.js`)
 
-O módulo `sync.js` implementa sincronização automática em background, ativada somente quando um endpoint estiver configurado.
+O módulo `sync.js` implementa sincronização automática em background **e sincronização imediata a cada save**, ativada somente quando um endpoint estiver configurado.
+
+### Sincronização imediata (fire-and-forget)
+
+A partir da v2.2, cada salvar de protocolo (`script.js`) e de laudo (`laudo_scripts.js`) dispara `sincronizarAgora()` automaticamente logo após gravar no localStorage. Se a tentativa falhar (offline, chave errada), o registro permanece com `synced: false` e o timer de background faz o retry.
+
+Um toast discreto informa o resultado:
+| Situação | Toast |
+|---|---|
+| Sucesso | 🟢 "Protocolo/Laudo enviado ao servidor." |
+| Offline | 🔵 "Offline — será sincronizado pelo temporizador." |
+| Erro de API | 🔴 "Erro de sincronização: HTTP 401" |
+| Sem endpoint | *(silencioso)* |
 
 ### Como configurar
 
