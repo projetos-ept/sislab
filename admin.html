@@ -366,6 +366,10 @@
          }
 
          function exportarDadosAdmin() {
+             const senhaEsperada = gerarSenhaAtual();
+             const senhaDigitada = prompt('Para exportar os dados, digite a senha:');
+             if (senhaDigitada === null) return;
+             if (senhaDigitada !== senhaEsperada) { alert('Senha incorreta. Exportação cancelada.'); return; }
              if (typeof window.SislabStorage === 'undefined' || !window.SislabStorage.exportarDados) {
                  alert("Módulo de armazenamento não inicializado. Tente novamente em instantes.");
                  return;
@@ -438,7 +442,14 @@
 
          async function importarDadosAdmin(event) {
              const file = event.target.files[0];
-             if (!file) return;
+             if (!file) { event.target.value = ''; return; }
+             const senhaEsperada = gerarSenhaAtual();
+             const senhaDigitada = prompt('Para importar dados, digite a senha:');
+             if (senhaDigitada === null || senhaDigitada !== senhaEsperada) {
+                 alert(senhaDigitada === null ? 'Importação cancelada.' : 'Senha incorreta. Importação cancelada.');
+                 event.target.value = '';
+                 return;
+             }
              if (typeof window.SislabStorage === 'undefined' || !window.SislabStorage.importarDados) {
                  alert("Módulo de armazenamento não inicializado. Tente novamente em instantes.");
                  return;
