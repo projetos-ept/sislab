@@ -613,6 +613,7 @@ function generatePdfLaudo() {
             }
             if (perf) {
                 br(5, 'EXAMES (Continuação):');
+                y += 3;
                 doc.setFont('helvetica', 'italic');
                 doc.setFontSize(8.5);
                 doc.setTextColor(130, 130, 130);
