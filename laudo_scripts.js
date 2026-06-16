@@ -45,7 +45,7 @@ const SMARTLAB_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 1
 
 let smartlabLogoDataUrl = null;
 
-async function loadSmartlabLogo() {
+export async function loadSmartlabLogo() {
     try {
         const blob = new Blob([SMARTLAB_SVG], { type: 'image/svg+xml' });
         const url  = URL.createObjectURL(blob);
@@ -66,7 +66,7 @@ async function loadSmartlabLogo() {
 }
 
 // ── Renderiza cabeçalho do laudo no PDF ───────────────────────────────────────
-function renderLaudoHeader(doc, logoUrl, laudoDate) {
+export function renderLaudoHeader(doc, logoUrl, laudoDate, casoClinico = null) {
     const [dateStr, timeStr] = laudoDate.split(' ');
     const navy = [26, 43, 76];
 
@@ -132,13 +132,24 @@ function renderLaudoHeader(doc, logoUrl, laudoDate) {
     doc.setLineWidth(0.5);
     doc.line(20, 52, 190, 52);
 
+    // ── Stamp CASO CLÍNICO (opcional)
+    if (casoClinico) {
+        doc.setFillColor(26, 115, 152);
+        doc.roundedRect(20, 53.5, 170, 7, 1.5, 1.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        const tituloTrunc = casoClinico.length > 80 ? casoClinico.slice(0, 77) + '...' : casoClinico;
+        doc.text(`CASO CLÍNICO: ${tituloTrunc}`, 105, 58.5, null, null, 'center');
+    }
+
     // ── Restaurar estado
     doc.setTextColor(0, 0, 0);
     doc.setDrawColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
     doc.setLineWidth(0.5);
 
-    return 59; // y de início do conteúdo
+    return casoClinico ? 66 : 59; // y de início do conteúdo
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
