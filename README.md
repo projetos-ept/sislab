@@ -14,6 +14,7 @@ sislab/
 ├── laudo_resultados.html     # Emissão de laudos
 ├── admin.html                # Área administrativa + configuração de sync
 ├── lista-exames.html         # Editor de lista de exames
+├── caso_clinico.html         # Geração de casos clínicos educacionais (standalone)
 │
 ├── script.js                 # Lógica do cadastro de exames
 ├── laudo_scripts.js          # Lógica da emissão de laudos
@@ -23,6 +24,7 @@ sislab/
 ├── exames_ref.js             # Dados de referência dos exames (unidades, VR)
 ├── sislab_utils.js           # Funções utilitárias compartilhadas
 │
+├── PROMPT_CASO_CLINICO.md    # Prompt estruturado para geração de casos via IA
 ├── pacientes_aleatorios.json # Dados fictícios para testes
 ├── lista-de-exames.txt       # Lista padrão de exames (fallback offline)
 │
@@ -136,9 +138,32 @@ Ferramentas de gerenciamento protegidas por senha dinâmica.
 | **Editar Lista de Exames** | Edita a lista de exames no navegador |
 | **Limpar TODO o Histórico** | Apaga todos os protocolos do localStorage |
 | **Gerar Paciente Aleatório** | Abre o cadastro com dados fictícios preenchidos |
-| **Exportar Dados (JSON)** | Baixa backup com histórico + laudos |
-| **Importar Dados (JSON)** | Importa JSON ignorando duplicatas por protocolo |
+| **Exportar Dados (JSON)** | Baixa backup com histórico + laudos (requer senha) |
+| **Importar Dados (JSON)** | Importa JSON ignorando duplicatas por protocolo (requer senha) |
+| **Caso Clínico** | Acessa a página de geração de casos clínicos educacionais |
 | **Configurar Sincronização** | Define endpoint, intervalo e chave de API para sync automático |
+
+---
+
+### Caso Clínico (`caso_clinico.html`)
+
+Módulo educacional **standalone** — os dados **não** são gravados no histórico convencional do sistema.
+
+**Fluxo:**
+
+1. Copie o prompt de `PROMPT_CASO_CLINICO.md` (ou use o botão na própria página)
+2. Cole em Claude, ChatGPT, Gemini ou outra IA e aguarde o JSON
+3. Cole o JSON na página ou faça upload do arquivo `.json`
+4. Revise os dados (todos os campos editáveis) e preencha o responsável técnico
+5. Clique **Gerar Laudo PDF** — o PDF terá o stamp "CASO CLÍNICO: [Título]" em faixa teal em todas as páginas
+
+**Características:**
+- Prompt inclui 20 endereços reais de Alagoinhas-BA, listas de nomes e sobrenomes brasileiros
+- A IA retorna resultados, referências, importância clínica e método já preenchidos — pronto para impressão
+- Aceita JSON colado diretamente na textarea ou via arquivo `.json`
+- Remove automaticamente blocos de código markdown (` ```json ``` `) gerados por algumas IAs
+- Código de verificação e aviso educacional presentes no PDF
+- Nenhuma escrita em `sislab_historico` ou `sislab_laudos`
 
 ---
 
