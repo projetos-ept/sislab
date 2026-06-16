@@ -54,6 +54,22 @@ function renderLaudoHeader(doc, logoUrl, laudoDate) {
     const [dateStr, timeStr] = laudoDate.split(' ');
     const navy = [26, 43, 76];
 
+    // ── Aviso educacional: linha cinza vertical + texto rotacionado (margem esquerda)
+    doc.setDrawColor(170, 170, 170);
+    doc.setLineWidth(0.4);
+    doc.line(8, 0, 8, 297);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(5.5);
+    doc.setTextColor(160, 160, 160);
+    doc.text(
+        'USO EXCLUSIVAMENTE EDUCACIONAL  -  Este laudo foi produzido em ambiente de treinamento e nao possui validade clinica, diagnostica ou legal.',
+        4, 262, { angle: 90 }
+    );
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+
     // ── Margem branca superior (~7 mm)
 
     // ── Faixa escura: y=7, h=8
