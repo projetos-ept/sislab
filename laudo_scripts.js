@@ -290,6 +290,7 @@ function buildListedExamHTML(examName, index, saved, patientGender) {
     const obs     = saved?.observacaoExame   ?? detail.specificObservation ?? '';
     const material = saved?.material         ?? detail.defaultMaterial ?? 'Soro';
     const method  = saved?.metodo            ?? detail.defaultMethod   ?? 'N/A';
+    const performer = saved?.realizadoPor    ?? '';
     let ref = saved?.referencia ?? 'N/A';
     if (!saved && detail.referenceRange) {
         const gk = patientGender === 'Masculino' ? 'male' : patientGender === 'Feminino' ? 'female' : 'general';
@@ -331,6 +332,10 @@ function buildListedExamHTML(examName, index, saved, patientGender) {
                 </div>
             </div>
             <textarea class="exam-observation" rows="2" placeholder="Observações específicas para este exame." readonly>${obs}</textarea>
+            <input type="text" class="exam-performer-value" value="${performer}"
+                placeholder="Teste realizado por: nome e identificação do estudante"
+                style="margin-top:6px;font-style:italic;color:#888;font-size:0.88em;width:100%;border:none;border-bottom:1px dashed #ccc;background:transparent;padding:3px 0;"
+                readonly>
             <div class="edit-button-container">
                 <button class="edit-exam-btn" data-action="edit">Editar</button>
             </div>
@@ -345,6 +350,7 @@ function buildCustomExamHTML(examName, index, saved) {
     const obs      = saved?.observacaoExame ?? '';
     const material = saved?.material        ?? '';
     const method   = saved?.metodo          ?? '';
+    const performer = saved?.realizadoPor   ?? '';
     return `
         <div class="exam-result-item custom-exam" data-exam-id="${id}" data-exam-name="${examName}" data-custom="true">
             <div class="exam-item-header">
@@ -372,6 +378,9 @@ function buildCustomExamHTML(examName, index, saved) {
                 </div>
             </div>
             <textarea class="exam-observation" rows="2" placeholder="Observações específicas para este exame.">${obs}</textarea>
+            <input type="text" class="exam-performer-value" value="${performer}"
+                placeholder="Teste realizado por: nome e identificação do estudante"
+                style="margin-top:6px;font-style:italic;color:#888;font-size:0.88em;width:100%;border:none;border-bottom:1px dashed #ccc;background:transparent;padding:3px 0;">
             <div class="edit-button-container">
                 <button class="remove-exam-btn">Remover</button>
             </div>
@@ -444,7 +453,8 @@ async function saveLaudo() {
             referencia:     item.querySelector('.exam-ref-value')?.value.trim()      || '',
             observacaoExame:item.querySelector('.exam-observation')?.value.trim()    || '',
             material:       item.querySelector('.exam-material-value')?.value.trim() || '',
-            metodo:         item.querySelector('.exam-method-value')?.value.trim()   || ''
+            metodo:         item.querySelector('.exam-method-value')?.value.trim()   || '',
+            realizadoPor:   item.querySelector('.exam-performer-value')?.value.trim() || ''
         };
         if (isCustom) entry.custom = true;
         examResults.push(entry);
@@ -581,10 +591,12 @@ function generatePdfLaudo() {
             const obs    = sanitizePdfText(item.querySelector('.exam-observation')?.value.trim()  || '');
             const mat    = sanitizePdfText(item.querySelector('.exam-material-value')?.value.trim() || 'Soro');
             const met    = sanitizePdfText(item.querySelector('.exam-method-value')?.value.trim()  || 'N/A');
+            const perf   = sanitizePdfText(item.querySelector('.exam-performer-value')?.value.trim() || '');
 
             let needed = lh * 3 + 7;
-            if (ref) needed += lh;
-            if (obs) needed += doc.splitTextToSize(`Obs.: ${obs}`, 170).length * 4;
+            if (ref)  needed += lh;
+            if (obs)  needed += doc.splitTextToSize(`Obs.: ${obs}`, 170).length * 4;
+            if (perf) needed += 5;
             br(needed, 'EXAMES (Continuação):');
 
             doc.setFont(undefined, 'bold');
@@ -598,6 +610,16 @@ function generatePdfLaudo() {
                     br(4, 'EXAMES (Continuação):');
                     doc.text(line, mx + 5, y); y += 4;
                 });
+            }
+            if (perf) {
+                br(5, 'EXAMES (Continuação):');
+                doc.setFont('helvetica', 'italic');
+                doc.setFontSize(8.5);
+                doc.setTextColor(130, 130, 130);
+                doc.text(`Teste Realizado por:  ${perf}`, mx + 5, y); y += 5;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
             }
             y += 2;
             if (idx < items.length - 1) {
