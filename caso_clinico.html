@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>SISLAB — Caso Clínico</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            background-color: #E0E6EE;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><text x="10" y="50" font-family="Arial, sans-serif" font-size="20" fill="%23FFFFFF" fill-opacity="0.1" transform="rotate(-20 10 50)">CETEP</text><text x="100" y="150" font-family="Arial, sans-serif" font-size="20" fill="%23FFFFFF" fill-opacity="0.1" transform="rotate(-20 100 150)">LNAB</text></svg>');
+            background-repeat: repeat;
+            background-size: 200px 200px;
+        }
+        .main-header-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .smartlab-logo { width: 180px; height: 50px; flex-shrink: 0; }
+        h1 {
+            color: #1A6E73;
+            margin: 0;
+            font-size: 2.2em;
+            font-weight: bold;
+            text-align: center;
+            padding: 5px 15px;
+            border-bottom: 3px solid #1A6E73;
+            display: inline-block;
+            letter-spacing: 1.5px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            width: 95%;
+            max-width: 1000px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        h2 { color: #1A6E73; margin-top: 0; }
+        h3 { color: #334466; margin: 10px 0 5px; }
+        label { font-weight: bold; margin-bottom: 5px; color: #334466; display: block; }
+        input[type="text"], textarea, select {
+            padding: 10px;
+            border: 1px solid #AABBDD;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #1A2B4C;
+            color: white;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        button:hover { background-color: #0F1D33; }
+        button.btn-teal { background-color: #1A6E73; }
+        button.btn-teal:hover { background-color: #135558; }
+        button.btn-red { background-color: #CC3333; font-weight: bold; }
+        button.btn-red:hover { background-color: #A02222; }
+        button.btn-copy { background-color: #555; font-size: 0.9em; padding: 7px 16px; }
+        button.btn-copy:hover { background-color: #333; }
+        .prompt-box {
+            background: #f7f9fc;
+            border: 1px solid #c8d8e8;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        #promptText {
+            font-family: 'Courier New', monospace;
+            font-size: 0.78em;
+            height: 260px;
+            resize: vertical;
+            background: #f0f4f8;
+            color: #222;
+            border: 1px solid #c0ccd8;
+        }
+        .import-area {
+            border: 2px dashed #AABBDD;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f9fbff;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        .import-area:hover { border-color: #1A6E73; background: #f0f8f8; }
+        #jsonPasteArea {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            height: 160px;
+            resize: vertical;
+            margin-bottom: 8px;
+            border-color: #c8d8e8;
+        }
+        .patient-info-display {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #fdfdfd;
+            margin-top: 10px;
+        }
+        .patient-info-display p { margin: 5px 0; font-size: 0.95em; }
+        .exam-result-item {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+            background: #fdfdfd;
+            margin-bottom: 15px;
+        }
+        .exam-name-title { font-weight: bold; color: #1A2B4C; font-size: 1.05em; margin-bottom: 10px; }
+        .result-inputs { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0; }
+        .result-inputs input { flex: 1; min-width: 120px; padding: 8px; font-size: 0.9em; }
+        .result-inputs input:first-child { flex: 2; }
+        .obs-field { margin-top: 8px; }
+        .obs-field textarea { font-size: 0.88em; height: 60px; resize: vertical; color: #555; }
+        .mat-met-row { display: flex; gap: 15px; flex-wrap: wrap; margin: 6px 0; font-size: 0.88em; color: #555; }
+        .mat-met-row span { display: flex; align-items: center; gap: 5px; }
+        .mat-met-row input { padding: 5px 8px; font-size: 0.88em; width: 180px; }
+        .badge-caso {
+            display: inline-block;
+            background: #1A6E73;
+            color: white;
+            border-radius: 4px;
+            padding: 3px 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .section-hidden { display: none; }
+        .step-label {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #1A6E73;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        #statusMsg { color: #CC3333; font-size: 0.9em; margin: 6px 0; min-height: 20px; }
+        #statusOk  { color: #28a745; font-size: 0.9em; margin: 6px 0; min-height: 20px; }
+        .sig-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+        .sig-row .form-field { flex: 1; min-width: 180px; }
+        .nav-bar { width: 95%; max-width: 1000px; margin-bottom: 10px; text-align: left; }
+        .nav-bar a { color: #1A6E73; text-decoration: none; font-size: 0.9em; }
+        .nav-bar a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="main-header-container">
+    <svg class="smartlab-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110">
+        <g transform="translate(200,5)">
+            <text y="55" text-anchor="middle" style="font-family:Arial Black,sans-serif;font-size:64px;font-weight:900;fill:#1d3557;letter-spacing:-2.5px">Smart<tspan style="font-weight:300;fill:#00b4d8;letter-spacing:-1.5px">Lab</tspan></text>
+            <g transform="translate(-100,65)">
+                <rect width="200" height="28" rx="4" ry="4" style="stroke:#1d3557;stroke-width:2;fill:none"/>
+                <text x="100" y="19" text-anchor="middle" style="font-family:Arial,sans-serif;font-size:16px;font-weight:900;fill:#1d3557;letter-spacing:2px">CETEP / LNAB</text>
+            </g>
+        </g>
+    </svg>
+    <h1>CASO CLÍNICO</h1>
+</div>
+
+<div class="nav-bar">
+    <a href="index.html">← Cadastro de Exames</a> &nbsp;|&nbsp;
+    <a href="laudo_resultados.html">Emissão de Laudos</a>
+</div>
+
+<!-- Seção 1: Prompt para IA -->
+<div class="container">
+    <div class="step-label">Passo 1 — Gere o caso com uma IA</div>
+    <h2>Prompt para Geração do Caso Clínico</h2>
+    <p style="color:#555;margin:0 0 12px;font-size:0.93em">
+        Copie o prompt abaixo, cole em <strong>Claude, ChatGPT</strong> ou outra IA e aguarde o JSON.
+        O caso já virá com resultados, referências, método e observações clínicas preenchidos.
+    </p>
+    <div class="prompt-box">
+        <textarea id="promptText" readonly></textarea>
+    </div>
+    <button class="btn-copy" onclick="copiarPrompt()">📋 Copiar Prompt</button>
+    <span id="copyFeedback" style="font-size:0.85em;color:#28a745;margin-left:8px;display:none">✓ Copiado!</span>
+</div>
+
+<!-- Seção 2: Importar JSON -->
+<div class="container">
+    <div class="step-label">Passo 2 — Importe o JSON do caso</div>
+    <h2>Importar Caso Clínico</h2>
+
+    <label for="jsonPasteArea">Cole o JSON aqui:</label>
+    <textarea id="jsonPasteArea" placeholder='{"titulo":"...","historico":[...],"laudos":[...]}'></textarea>
+
+    <div style="display:flex;align-items:center;gap:12px;margin:6px 0 14px;">
+        <button class="btn-teal" onclick="carregarDoPaste()">Carregar JSON colado</button>
+        <span style="color:#aaa;font-size:0.9em">ou</span>
+        <label style="font-weight:normal;margin:0">
+            <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="carregarDeArquivo(event)">
+            <button class="btn-copy" onclick="document.getElementById('jsonFileInput').click()">📂 Abrir arquivo .json</button>
+        </label>
+    </div>
+
+    <div id="statusMsg"></div>
+    <div id="statusOk"></div>
+</div>
+
+<!-- Seção 3: Revisão e impressão (oculta até import) -->
+<div class="container section-hidden" id="reviewSection">
+    <div class="step-label">Passo 3 — Revise e gere o laudo</div>
+    <h2>Revisão do Caso Clínico</h2>
+
+    <div id="casoBadge" class="badge-caso"></div>
+
+    <h3>Dados do Paciente</h3>
+    <div class="patient-info-display" id="patientDisplay"></div>
+
+    <h3 style="margin-top:18px">Resultados dos Exames</h3>
+    <div id="examsReviewContainer"></div>
+
+    <div style="margin-top:12px">
+        <label for="obsGeraisCaso">Observações Gerais do Laudo:</label>
+        <textarea id="obsGeraisCaso" style="height:80px;resize:vertical"></textarea>
+    </div>
+
+    <div class="sig-row">
+        <div class="form-field">
+            <label for="resNomeCaso">Responsável Técnico:</label>
+            <input type="text" id="resNomeCaso" placeholder="Nome do responsável">
+        </div>
+        <div class="form-field">
+            <label for="resRegCaso">CRF / CRBM:</label>
+            <input type="text" id="resRegCaso" placeholder="Número de registro">
+        </div>
+    </div>
+
+    <div style="margin-top:16px;text-align:center">
+        <button class="btn-red" onclick="gerarLaudoPDF()">🖨️ Gerar Laudo PDF</button>
+        <button onclick="limparCaso()" style="background:#888;margin-left:10px">✕ Limpar</button>
+    </div>
+</div>
+
+<div style="text-align:center;margin-top:10px">
+    <a href="index.html" style="color:#1A2B4C;font-size:0.9em">← Voltar ao Cadastro de Exames</a>
+</div>
+
+<script type="module">
+// ── Estado em memória (standalone — nada vai para sislab_historico/laudos) ────
+let casoAtual = null; // { titulo, paciente, laudo }
+
+// ── Prompt estruturado ───────────────────────────────────────────────────────
+const PROMPT_CASO_CLINICO = `Você é um auxiliar de geração de casos clínicos educacionais para um sistema laboratorial brasileiro.
+Gere um caso clínico fictício e retorne APENAS o JSON válido abaixo, sem texto adicional.
+
+REGRAS OBRIGATÓRIAS:
+• Escolha nome e sobrenome aleatórios das listas abaixo
+• Idade entre 8 e 72 anos; calcule dataNasc retroativamente a partir de hoje
+• Escolha um endereço aleatório da lista de Alagoinhas-BA
+• Inclua de 3 a 6 exames laboratoriais coerentes com o quadro clínico
+• Preencha resultado, unidade e referencia para TODOS os exames
+• observacaoExame: importância clínica do exame e interpretação do resultado obtido (2-4 linhas)
+• metodo: técnica laboratorial real usada para aquele exame (ex.: Quimioluminescência, HPLC, PCR)
+• material: amostra biológica (ex.: Soro, Sangue Total, Urina, Plasma)
+• observacoesGerais: interpretação clínica integrativa do caso (4-6 linhas)
+• Gere ids de 14 chars alfanuméricos minúsculos; protocolo no formato "CASO-NNN"
+• O campo titulo define o tema (ex.: "Anemia Ferropriva em Adolescente")
+
+NOMES MASCULINOS: Anderson, Bruno, Carlos, Diego, Eduardo, Felipe, Gabriel, Henrique,
+Igor, João, Lucas, Marcos, Nicolas, Pedro, Rafael, Samuel, Thiago, Vinícius, Wanderson
+
+NOMES FEMININOS: Ana Clara, Beatriz, Camila, Daniela, Eduarda, Fernanda, Gabriela,
+Helena, Isabela, Juliana, Larissa, Mariana, Natália, Patrícia, Renata, Silvana, Tatiane
+
+SOBRENOMES: Silva, Santos, Oliveira, Costa, Ferreira, Almeida, Lima, Carvalho, Souza,
+Rocha, Nascimento, Batista, Peixoto, Mendes, Araújo, Barbosa, Pinheiro, Lopes, Ramos
+
+ENDEREÇOS — ALAGOINHAS/BA:
+1. Rua Cel. João Dias, 45, Centro, Alagoinhas - BA
+2. Av. Irmã Alice, 112, Aviário, Alagoinhas - BA
+3. Rua do Progresso, 78, Urbis IV, Alagoinhas - BA
+4. Rua Padre Cícero, 230, Jorge Amado, Alagoinhas - BA
+5. Rua 7 de Setembro, 98, Centro, Alagoinhas - BA
+6. Rua João Pessoa, 15, Rui Barbosa, Alagoinhas - BA
+7. Rua Benjamin Constant, 321, São Pedro, Alagoinhas - BA
+8. Rua Euclides da Cunha, 55, Centro, Alagoinhas - BA
+9. Rua Sete Quedas, 402, Urbis II, Alagoinhas - BA
+10. Rua Antônio Balbino, 37, Brasília, Alagoinhas - BA
+11. Rua Luís Eduardo Magalhães, 88, São Caetano, Alagoinhas - BA
+12. Rua Cel. Nilton Carneiro, 194, Taquaral, Alagoinhas - BA
+13. Av. Presidente Vargas, 516, Alto da Boa Vista, Alagoinhas - BA
+14. Rua da Saudade, 29, Monte Sinai, Alagoinhas - BA
+15. Rua do Catu, 143, Catu de Alagoinhas - BA
+16. Rua São Benedito, 77, Nova América, Alagoinhas - BA
+17. Rua do Sol, 210, Teresópolis, Alagoinhas - BA
+18. Rua 25 de Dezembro, 63, Centro, Alagoinhas - BA
+19. Rua Piauí, 118, Jardim Centenário, Alagoinhas - BA
+20. Rua Dr. Geraldo Magalhães, 350, Alto do Forno, Alagoinhas - BA
+
+FORMATO JSON EXATO (retorne apenas isso, sem markdown, sem blocos de código):
+{
+  "titulo": "string — tema do caso clínico",
+  "version": "2.1",
+  "historico": [{
+    "id": "string 14 chars alfanuméricos minúsculos",
+    "protocolo": "CASO-001",
+    "nome": "string",
+    "cpf": "string 11 dígitos fictícios",
+    "dataNasc": "YYYY-MM-DD",
+    "idade": "X anos e Y meses",
+    "sexo": "Masculino ou Feminino",
+    "endereco": "string (use endereço da lista acima)",
+    "contato": "(75) 9XXXX-XXXX",
+    "observacoes": "string — história clínica: sintomas, tempo de evolução, contexto",
+    "exames": ["Nome Exame 1", "Nome Exame 2"],
+    "examesNaoListados": "",
+    "timestamp": 0,
+    "synced": false
+  }],
+  "laudos": [{
+    "id": "string 14 chars alfanuméricos minúsculos diferente do anterior",
+    "patientId": "<id do historico acima>",
+    "protocolo": "CASO-001",
+    "nomePaciente": "<mesmo nome do historico>",
+    "cpfPaciente": "<mesmo cpf do historico>",
+    "examesResultados": [
+      {
+        "nomeExame": "string — nome completo do exame",
+        "resultado": "string — valor numérico ou textual do resultado",
+        "unidade": "string — ex.: mg/dL, %, U/L",
+        "referencia": "string — faixa de referência completa com unidade",
+        "observacaoExame": "string — importância clínica e interpretação deste resultado específico",
+        "material": "string — ex.: Soro, Sangue Total, Urina, Plasma",
+        "metodo": "string — técnica laboratorial real",
+        "realizadoPor": ""
+      }
+    ],
+    "observacoesGerais": "string — interpretação clínica integrativa de todos os resultados",
+    "responsavelTecnico": { "nome": "", "registro": "" },
+    "synced": false
+  }]
+}`;
+
+document.getElementById('promptText').value = PROMPT_CASO_CLINICO;
+
+// ── Copiar prompt ────────────────────────────────────────────────────────────
+window.copiarPrompt = async function() {
+    try {
+        await navigator.clipboard.writeText(PROMPT_CASO_CLINICO);
+        const fb = document.getElementById('copyFeedback');
+        fb.style.display = 'inline';
+        setTimeout(() => { fb.style.display = 'none'; }, 2500);
+    } catch (_) {
+        alert('Não foi possível copiar automaticamente. Selecione o texto e use Ctrl+C.');
+    }
+};
+
+// ── Carregar de paste ou arquivo ─────────────────────────────────────────────
+window.carregarDoPaste = function() {
+    const txt = document.getElementById('jsonPasteArea').value.trim();
+    if (!txt) { setStatus('Cole o JSON no campo acima.', 'err'); return; }
+    parsearECarregar(txt);
+};
+
+window.carregarDeArquivo = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => parsearECarregar(e.target.result);
+    reader.readAsText(file);
+    event.target.value = '';
+};
+
+function parsearECarregar(jsonStr) {
+    setStatus('', 'err');
+    setStatus('', 'ok');
+    try {
+        // Remover possíveis blocos de código markdown (```json ... ```)
+        const clean = jsonStr.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+        const data = JSON.parse(clean);
+
+        if (!Array.isArray(data.historico) || !data.historico.length)
+            throw new Error('JSON inválido: campo "historico" ausente ou vazio.');
+        if (!Array.isArray(data.laudos) || !data.laudos.length)
+            throw new Error('JSON inválido: campo "laudos" ausente ou vazio.');
+
+        const paciente = data.historico[0];
+        const laudo    = data.laudos[0];
+        const titulo   = data.titulo || 'Caso Clínico';
+
+        if (!paciente.nome) throw new Error('Campo "nome" ausente no paciente.');
+        if (!Array.isArray(laudo.examesResultados) || !laudo.examesResultados.length)
+            throw new Error('Campo "examesResultados" ausente ou vazio.');
+
+        casoAtual = { titulo, paciente, laudo };
+        renderReview(titulo, paciente, laudo);
+        setStatus('', 'err');
+        setStatus(`✓ Caso "${titulo}" carregado com sucesso.`, 'ok');
+    } catch (e) {
+        setStatus('Erro ao processar JSON: ' + e.message, 'err');
+        document.getElementById('reviewSection').classList.add('section-hidden');
+    }
+}
+
+function setStatus(msg, tipo) {
+    document.getElementById(tipo === 'ok' ? 'statusOk' : 'statusMsg').textContent = msg;
+}
+
+// ── Renderizar revisão ───────────────────────────────────────────────────────
+function renderReview(titulo, paciente, laudo) {
+    document.getElementById('casoBadge').textContent = `CASO CLÍNICO: ${titulo}`;
+
+    // Dados do paciente
+    const pd = document.getElementById('patientDisplay');
+    pd.innerHTML = `
+        <p><strong>Protocolo:</strong> ${paciente.protocolo || 'N/D'}</p>
+        <p><strong>Nome:</strong> ${paciente.nome}</p>
+        <p><strong>CPF:</strong> ${(paciente.cpf || 'N/D').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</p>
+        <p><strong>Idade:</strong> ${paciente.idade || 'N/D'}</p>
+        <p><strong>Sexo:</strong> ${paciente.sexo || 'N/D'}</p>
+        <p><strong>Contato:</strong> ${paciente.contato || 'N/D'}</p>
+        <p><strong>Endereço:</strong> ${paciente.endereco || 'N/D'}</p>
+        <p><strong>Observações:</strong> ${paciente.observacoes || '—'}</p>`;
+
+    // Exames
+    const container = document.getElementById('examsReviewContainer');
+    container.innerHTML = '';
+    (laudo.examesResultados || []).forEach((ex, i) => {
+        const div = document.createElement('div');
+        div.className = 'exam-result-item';
+        div.dataset.index = i;
+        div.innerHTML = `
+            <div class="exam-name-title">${ex.nomeExame || '—'}</div>
+            <div class="mat-met-row">
+                <span>Material: <input type="text" class="ex-material" value="${esc(ex.material)}"></span>
+                <span>Método: <input type="text" class="ex-metodo" value="${esc(ex.metodo)}"></span>
+            </div>
+            <div class="result-inputs">
+                <input type="text" class="ex-resultado" placeholder="Resultado" value="${esc(ex.resultado)}">
+                <input type="text" class="ex-unidade" placeholder="Unidade" value="${esc(ex.unidade)}" style="max-width:100px">
+                <input type="text" class="ex-referencia" placeholder="Referência" value="${esc(ex.referencia)}" style="max-width:200px">
+            </div>
+            <div class="obs-field">
+                <textarea class="ex-obs" placeholder="Observação / importância clínica">${esc(ex.observacaoExame)}</textarea>
+            </div>`;
+        container.appendChild(div);
+    });
+
+    // Preencher obs gerais e responsável
+    document.getElementById('obsGeraisCaso').value = laudo.observacoesGerais || '';
+    document.getElementById('resNomeCaso').value  = laudo.responsavelTecnico?.nome || '';
+    document.getElementById('resRegCaso').value   = laudo.responsavelTecnico?.registro || '';
+
+    document.getElementById('reviewSection').classList.remove('section-hidden');
+    document.getElementById('reviewSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function esc(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+// ── Limpar ───────────────────────────────────────────────────────────────────
+window.limparCaso = function() {
+    casoAtual = null;
+    document.getElementById('jsonPasteArea').value = '';
+    document.getElementById('reviewSection').classList.add('section-hidden');
+    setStatus('', 'err'); setStatus('', 'ok');
+};
+
+// ── SmartLab logo para PDF ───────────────────────────────────────────────────
+const SMARTLAB_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110"><g transform="translate(200,5)"><text y="55" text-anchor="middle" style="font-family:Arial Black,sans-serif;font-size:64px;font-weight:900;fill:#1d3557;letter-spacing:-2.5px">Smart<tspan style="font-weight:300;fill:#00b4d8;letter-spacing:-1.5px">Lab</tspan></text><g transform="translate(-100,65)"><rect width="200" height="28" rx="4" ry="4" style="stroke:#1d3557;stroke-width:2;fill:none"/><text x="100" y="19" text-anchor="middle" style="font-family:Arial,sans-serif;font-size:16px;font-weight:900;fill:#1d3557;letter-spacing:2px">CETEP / LNAB</text></g></g></svg>`;
+let smartlabLogoDataUrl = null;
+
+async function loadSmartlabLogo() {
+    try {
+        const blob = new Blob([SMARTLAB_SVG], { type: 'image/svg+xml' });
+        const url  = URL.createObjectURL(blob);
+        await new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => {
+                const c = document.createElement('canvas');
+                c.width = 400; c.height = 110;
+                c.getContext('2d').drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+                smartlabLogoDataUrl = c.toDataURL('image/png');
+                resolve();
+            };
+            img.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+            img.src = url;
+        });
+    } catch (_) {}
+}
+
+// ── Cabeçalho PDF (com stamp de CASO CLÍNICO) ────────────────────────────────
+function renderCasoHeader(doc, logoUrl, dateStr, timeStr, titulo) {
+    const navy = [26, 43, 76];
+    const teal = [26, 115, 152];
+
+    // Aviso educacional (margem esquerda)
+    doc.setDrawColor(170, 170, 170);
+    doc.setLineWidth(0.4);
+    doc.line(8, 0, 8, 297);
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(6.5);
+    doc.setTextColor(85, 85, 85);
+    doc.text('USO EXCLUSIVAMENTE EDUCACIONAL  -  Este laudo foi produzido em ambiente de treinamento e nao possui validade clinica, diagnostica ou legal.', 7, 245, { angle: 90 });
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+
+    // Faixa navy
+    doc.setFillColor(...navy);
+    doc.rect(0, 7, 210, 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`EMISSÃO: ${dateStr}  |  ${timeStr}`, 20, 12.5);
+    doc.text('@ cetep.lnab   |   WWW.CETEPNAB.COM.BR', 192, 12.5, null, null, 'right');
+
+    // Logos e título
+    try { doc.addImage(logoUrl, 'PNG', 20, 16, 22, 22); } catch (_) {}
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(17, 17, 17);
+    doc.text('LABORATÓRIO DE ANÁLISES CLÍNICAS', 105, 23, null, null, 'center');
+    if (smartlabLogoDataUrl) {
+        try { doc.addImage(smartlabLogoDataUrl, 'PNG', 84, 26, 42, 11); } catch (_) {}
+    }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(90, 90, 90);
+    doc.text('R. Mario Laerte, 163 - Centro, Alagoinhas - BA  |  CEP: 48005-098', 105, 40, null, null, 'center');
+
+    // Separadores + RESULTADOS
+    doc.setDrawColor(...navy);
+    doc.setLineWidth(0.5);
+    doc.line(20, 43, 190, 43);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...navy);
+    doc.setCharSpace(3);
+    doc.text('RESULTADOS', 105, 49.5, null, null, 'center');
+    doc.setCharSpace(0);
+    doc.setLineWidth(0.5);
+    doc.line(20, 52, 190, 52);
+
+    // Stamp CASO CLÍNICO
+    doc.setFillColor(...teal);
+    doc.roundedRect(20, 53.5, 170, 7, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    const tituloTrunc = titulo.length > 80 ? titulo.slice(0, 77) + '...' : titulo;
+    doc.text(`CASO CLÍNICO: ${tituloTrunc}`, 105, 58.5, null, null, 'center');
+
+    // Restaurar
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setLineWidth(0.5);
+    return 66; // y inicial do conteúdo
+}
+
+// ── Gerar PDF ────────────────────────────────────────────────────────────────
+window.gerarLaudoPDF = async function() {
+    if (!casoAtual) { alert('Carregue um caso clínico primeiro.'); return; }
+    if (!window.jspdf) { alert('Biblioteca PDF não carregada. Recarregue a página.'); return; }
+
+    await loadSmartlabLogo();
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const mx = 20, lh = 7, limit = 280;
+    let y;
+
+    const now       = new Date();
+    const dateStr   = now.toLocaleDateString('pt-BR');
+    const timeStr   = now.toTimeString().slice(0, 8);
+    const logoUrl   = 'https://hyskal.github.io/connect/logo.png';
+    const titulo    = casoAtual.titulo;
+    const paciente  = casoAtual.paciente;
+    const resNome   = document.getElementById('resNomeCaso').value.trim();
+    const resReg    = document.getElementById('resRegCaso').value.trim();
+    const obsGerais = document.getElementById('obsGeraisCaso').value.trim();
+
+    function sanitize(s) {
+        return (s || '').replace(/[Ā-￿]/g, c => {
+            const m = { 'ã':'a','â':'a','á':'a','à':'a','ä':'a','Ã':'A','Â':'A','Á':'A','À':'A',
+                'ê':'e','é':'e','è':'e','ë':'e','Ê':'E','É':'E',
+                'í':'i','ì':'i','î':'i','Í':'I','Î':'I',
+                'õ':'o','ô':'o','ó':'o','ò':'o','ö':'o','Õ':'O','Ô':'O','Ó':'O',
+                'ú':'u','ù':'u','û':'u','ü':'u','Ú':'U','Û':'U',
+                'ç':'c','Ç':'C','ñ':'n' };
+            return m[c] || c;
+        });
+    }
+
+    function drawFooter() {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Liberado por: Dr(a). ${resNome || 'N/D'}${resReg ? `, CRF/CRBM: ${resReg}` : ''}`, 105, 285, null, null, 'center');
+        doc.setFontSize(7);
+        doc.text(`CASO CLÍNICO EDUCACIONAL  |  ${titulo}`, 105, 290, null, null, 'center');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+    }
+
+    function drawHeaderBreak(sectionTitle) {
+        drawFooter();
+        doc.addPage();
+        y = renderCasoHeader(doc, logoUrl, dateStr, timeStr, titulo);
+        if (sectionTitle) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
+            doc.text(sectionTitle, mx, y);
+            doc.setFont('helvetica', 'normal');
+            y += 8;
+            doc.setFontSize(10);
+        }
+    }
+
+    function br(needed, sectionTitle) {
+        if (y + needed > limit) drawHeaderBreak(sectionTitle || null);
+    }
+
+    // ── Página 1
+    y = renderCasoHeader(doc, logoUrl, dateStr, timeStr, titulo);
+
+    // Dados do paciente
+    br(lh * 3, null);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text('DADOS DO PACIENTE:', mx, y); y += lh;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+
+    const pLines = [
+        ['Protocolo', paciente.protocolo || 'N/D'],
+        ['Nome', paciente.nome || 'N/D'],
+        ['CPF', (paciente.cpf || 'N/D').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')],
+        ['Nascimento / Idade', `${paciente.dataNasc || 'N/D'} / ${paciente.idade || 'N/D'}`],
+        ['Sexo', paciente.sexo || 'N/D'],
+        ['Contato', paciente.contato || 'N/D'],
+        ['Endereço', paciente.endereco || 'N/D'],
+    ];
+    pLines.forEach(([k, v]) => {
+        br(lh, null);
+        doc.setFont('helvetica', 'bold'); doc.text(`${k}: `, mx, y);
+        const kw = doc.getTextWidth(`${k}: `);
+        doc.setFont('helvetica', 'normal');
+        const vLines = doc.splitTextToSize(sanitize(v), 170 - kw);
+        doc.text(vLines, mx + kw, y);
+        y += lh * vLines.length;
+    });
+
+    if (paciente.observacoes) {
+        br(lh * 2, null);
+        doc.setFont('helvetica', 'bold'); doc.text('Observações: ', mx, y);
+        const kw2 = doc.getTextWidth('Observações: ');
+        doc.setFont('helvetica', 'italic');
+        const obsLines = doc.splitTextToSize(sanitize(paciente.observacoes), 170 - kw2);
+        doc.text(obsLines, mx + kw2, y);
+        y += lh * obsLines.length;
+        doc.setFont('helvetica', 'normal');
+    }
+
+    y += 4;
+    br(10, null);
+    doc.setLineWidth(0.2); doc.line(mx, y, 190, y); y += 8;
+
+    // Exames
+    br(lh * 2, 'EXAMES:');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text('EXAMES:', mx, y); y += 8;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+
+    const items = document.querySelectorAll('#examsReviewContainer .exam-result-item');
+    items.forEach((item, idx) => {
+        const nomExame  = item.querySelector('.exam-name-title')?.textContent?.trim() || '';
+        const resultado = sanitize(item.querySelector('.ex-resultado')?.value?.trim() || '');
+        const unidade   = sanitize(item.querySelector('.ex-unidade')?.value?.trim() || '');
+        const referencia= sanitize(item.querySelector('.ex-referencia')?.value?.trim() || '');
+        const obs       = sanitize(item.querySelector('.ex-obs')?.value?.trim() || '');
+        const material  = sanitize(item.querySelector('.ex-material')?.value?.trim() || '');
+        const metodo    = sanitize(item.querySelector('.ex-metodo')?.value?.trim() || '');
+
+        br(lh * 2, 'EXAMES (Continuação):');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+        doc.text(sanitize(nomExame), mx + 2, y); y += lh;
+        doc.setFont('helvetica', 'normal');
+
+        // Material / Método
+        if (material || metodo) {
+            br(lh, 'EXAMES (Continuação):');
+            doc.setFontSize(8.5); doc.setTextColor(100, 100, 100);
+            doc.text(`Material: ${material || 'N/D'}   |   Método: ${metodo || 'N/D'}`, mx + 4, y); y += lh;
+            doc.setTextColor(0, 0, 0); doc.setFontSize(10);
+        }
+
+        // Resultado
+        br(lh, 'EXAMES (Continuação):');
+        doc.setFont('helvetica', 'bold');
+        const resLabel = `Resultado: ${resultado || 'N/D'} ${unidade}`;
+        doc.text(resLabel, mx + 4, y); y += lh;
+        doc.setFont('helvetica', 'normal');
+
+        // Referência
+        if (referencia) {
+            br(lh, 'EXAMES (Continuação):');
+            doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+            doc.text(`Referência: ${referencia}`, mx + 4, y); y += lh;
+            doc.setTextColor(0, 0, 0); doc.setFontSize(10);
+        }
+
+        // Observação
+        if (obs) {
+            br(lh * 2, 'EXAMES (Continuação):');
+            doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(70, 70, 70);
+            const obsLines = doc.splitTextToSize(obs, 166);
+            obsLines.forEach(line => {
+                br(lh, 'EXAMES (Continuação):');
+                doc.setFont('helvetica', 'italic');
+                doc.text(line, mx + 4, y); y += 5;
+            });
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+        }
+
+        y += 2;
+        if (idx < items.length - 1) {
+            br(5, 'EXAMES (Continuação):');
+            doc.setLineDash([2, 2]); doc.line(mx, y, 190, y); doc.setLineDash([]); y += 5;
+        }
+    });
+
+    // Separador
+    br(10, null); doc.setLineWidth(0.2); doc.line(mx, y, 190, y); y += 10;
+
+    // Assinatura
+    br(lh * 3 + 15, null);
+    doc.setFontSize(10);
+    doc.text('__________________________________________', 105, y, null, null, 'center'); y += lh;
+    doc.text(`Nome: Dr(a). ${resNome || 'N/D'}`, 105, y, null, null, 'center'); y += lh;
+    doc.text(`Registro: ${resReg ? `CRF/CRBM: ${resReg}` : 'N/D'}`, 105, y, null, null, 'center'); y += 5;
+    br(10, null); doc.setLineWidth(0.2); doc.line(mx, y, 190, y); y += 10;
+
+    // Observações gerais
+    if (obsGerais) {
+        br(20, 'OBSERVAÇÕES GERAIS:');
+        doc.setFontSize(10); doc.text('OBSERVAÇÕES GERAIS:', mx, y); y += 8;
+        doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+        doc.splitTextToSize(sanitize(obsGerais), 170).forEach(line => {
+            br(4, 'OBSERVAÇÕES GERAIS (Continuação):');
+            doc.setFont('helvetica', 'italic');
+            doc.text(line, mx + 5, y); y += 4;
+        });
+        doc.setFont('helvetica', 'normal'); y += 5;
+    }
+
+    drawFooter();
+
+    const nomeArquivo = sanitize(`CasoCli_${paciente.nome.replace(/\s+/g, '_')}_${titulo.replace(/\s+/g, '_').slice(0, 30)}.pdf`);
+    doc.output('dataurlnewwindow', { filename: nomeArquivo });
+};
+</script>
+</body>
+</html>
