@@ -63,7 +63,7 @@ function renderLaudoHeader(doc, logoUrl, laudoDate) {
     doc.setTextColor(160, 160, 160);
     doc.text(
         'USO EXCLUSIVAMENTE EDUCACIONAL  -  Este laudo foi produzido em ambiente de treinamento e nao possui validade clinica, diagnostica ou legal.',
-        4, 262, { angle: 90 }
+        2.5, 262, { angle: 90 }
     );
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
