@@ -551,8 +551,7 @@ function generatePdfLaudo() {
     const resReg   = document.getElementById('responsavelTecnicoRegistro').value.trim();
     const laudoDate = document.getElementById('laudoGenerationDate').textContent;
     const logoUrl  = 'https://hyskal.github.io/connect/logo.png';
-    const laudoSalvo = getLaudoByPatientId(selectedPatientData.id);
-    const codigoVer  = laudoSalvo?.codigoVerificacao || null;
+    const codigoVer = document.getElementById('verificationCode')?.textContent?.trim() || null;
 
     const drawPageFooter = () => {
         doc.setFont('helvetica', 'normal');
