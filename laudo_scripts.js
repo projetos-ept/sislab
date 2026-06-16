@@ -274,7 +274,7 @@ async function selectPatient(patientId) {
         const lastLaudo = getLaudoByPatientId(patientId);
         document.getElementById('responsavelTecnicoNome').value    = lastLaudo?.responsavelTecnico?.nome     || '';
         document.getElementById('responsavelTecnicoRegistro').value = lastLaudo?.responsavelTecnico?.registro || '';
-        exibirCodigoNaUI(lastLaudo?.codigoVerificacao || null);
+        exibirCodigoNaUI(lastLaudo?.codigoVerificacao || gerarCodigoVerificacao());
         displayPatientData(patient);
         displayPatientExamsForLaudo(
             patient.exames,
@@ -472,7 +472,9 @@ async function saveLaudo() {
     if (!selectedPatientData) { alert('Selecione um paciente antes de salvar o laudo.'); return; }
 
     const existingLaudo = getLaudoByPatientId(selectedPatientData.id);
-    const codigoVerificacao = existingLaudo?.codigoVerificacao || gerarCodigoVerificacao();
+    const codigoVerificacao = existingLaudo?.codigoVerificacao
+        || document.getElementById('verificationCode')?.textContent?.trim()
+        || gerarCodigoVerificacao();
 
     const examResults = [];
     document.querySelectorAll('.exam-result-item').forEach(item => {
