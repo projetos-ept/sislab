@@ -23,6 +23,22 @@ function mostrarToastSync(mensagem, tipo) {
     setTimeout(() => toast.remove(), 3500);
 }
 
+// ── Código de verificação do laudo ────────────────────────────────────────────
+
+function gerarCodigoVerificacao() {
+    const bytes = crypto.getRandomValues(new Uint8Array(8));
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    return `${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}`;
+}
+
+function exibirCodigoNaUI(codigo) {
+    const row = document.getElementById('verificationCodeRow');
+    const el  = document.getElementById('verificationCode');
+    if (!row || !el) return;
+    if (codigo) { el.textContent = codigo; row.style.display = ''; }
+    else { row.style.display = 'none'; }
+}
+
 // ── Logo SmartLab para o PDF ──────────────────────────────────────────────────
 
 const SMARTLAB_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 110"><g transform="translate(200,5)"><text y="55" text-anchor="middle" style="font-family:Arial Black,sans-serif;font-size:64px;font-weight:900;fill:#1d3557;letter-spacing:-2.5px">Smart<tspan style="font-weight:300;fill:#00b4d8;letter-spacing:-1.5px">Lab</tspan></text><g transform="translate(-100,65)"><rect width="200" height="28" rx="4" ry="4" style="stroke:#1d3557;stroke-width:2;fill:none"/><text x="100" y="19" text-anchor="middle" style="font-family:Arial,sans-serif;font-size:16px;font-weight:900;fill:#1d3557;letter-spacing:2px">CETEP / LNAB</text></g></g></svg>`;
@@ -258,6 +274,7 @@ async function selectPatient(patientId) {
         const lastLaudo = getLaudoByPatientId(patientId);
         document.getElementById('responsavelTecnicoNome').value    = lastLaudo?.responsavelTecnico?.nome     || '';
         document.getElementById('responsavelTecnicoRegistro').value = lastLaudo?.responsavelTecnico?.registro || '';
+        exibirCodigoNaUI(lastLaudo?.codigoVerificacao || null);
         displayPatientData(patient);
         displayPatientExamsForLaudo(
             patient.exames,
@@ -454,6 +471,9 @@ function adicionarExameAvulso() {
 async function saveLaudo() {
     if (!selectedPatientData) { alert('Selecione um paciente antes de salvar o laudo.'); return; }
 
+    const existingLaudo = getLaudoByPatientId(selectedPatientData.id);
+    const codigoVerificacao = existingLaudo?.codigoVerificacao || gerarCodigoVerificacao();
+
     const examResults = [];
     document.querySelectorAll('.exam-result-item').forEach(item => {
         const isCustom  = item.dataset.custom === 'true';
@@ -484,6 +504,7 @@ async function saveLaudo() {
         examesResultados: examResults,
         observacoesGerais:document.getElementById('observacoesLaudoGeral').value.trim(),
         dataEmissao:      new Date().toISOString(),
+        codigoVerificacao,
         responsavelTecnico: {
             nome:     document.getElementById('responsavelTecnicoNome').value.trim(),
             registro: document.getElementById('responsavelTecnicoRegistro').value.trim()
@@ -507,6 +528,7 @@ async function saveLaudo() {
         }, { once: true });
         sincronizarAgora();
 
+        exibirCodigoNaUI(codigoVerificacao);
         alert(`Laudo salvo com sucesso! ID: ${id}`);
     } catch (err) {
         alert(`Erro ao salvar laudo: ${err.message}`);
@@ -529,14 +551,25 @@ function generatePdfLaudo() {
     const resReg   = document.getElementById('responsavelTecnicoRegistro').value.trim();
     const laudoDate = document.getElementById('laudoGenerationDate').textContent;
     const logoUrl  = 'https://hyskal.github.io/connect/logo.png';
+    const laudoSalvo = getLaudoByPatientId(selectedPatientData.id);
+    const codigoVer  = laudoSalvo?.codigoVerificacao || null;
 
-    const drawHeader = (title) => {
+    const drawPageFooter = () => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(80, 80, 80);
         doc.text(`Liberado por: Dr(a). ${resNome || 'N/D'}${resReg ? `, CRF/CRBM: ${resReg}` : ''}`,
             105, 285, null, null, 'center');
+        if (codigoVer) {
+            doc.setFontSize(7);
+            doc.text(`Cód. Verificação: ${codigoVer}`, 105, 290, null, null, 'center');
+        }
+        doc.setFontSize(9);
         doc.setTextColor(0, 0, 0);
+    };
+
+    const drawHeader = (title) => {
+        drawPageFooter();
         doc.addPage();
         y = renderLaudoHeader(doc, logoUrl, laudoDate);
         if (title === 'EXAMES (Continuação):') {
@@ -669,6 +702,8 @@ function generatePdfLaudo() {
             doc.setFont(undefined, 'normal'); y += 5;
             br(10, null); doc.setLineWidth(0.2); doc.line(mx, y, 190, y);
         }
+
+        drawPageFooter();
 
         doc.output('dataurlnewwindow', {
             filename: `Laudo_${selectedPatientData.nome.replace(/\s+/g, '_')}_${selectedPatientData.protocolo}.pdf`
