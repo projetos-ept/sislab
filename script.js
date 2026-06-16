@@ -3,7 +3,7 @@
 import {
     getHistorico, getNextProtocolNumber, addProtocolo, deleteProtocolos,
     clearHistorico, getProtocoloById, findByCpf,
-    getListaExamesCache, setListaExamesCache
+    getListaExamesCache, setListaExamesCache, getLaudos
 } from './data_storage.js';
 import { sincronizarAgora } from './sync.js';
 
@@ -437,14 +437,20 @@ async function mostrarHistorico() {
     const cadastros = getHistorico();
     if (!cadastros.length) { ul.innerHTML = '<p>Nenhum cadastro encontrado.</p>'; return; }
 
+    const laudoProts = new Set(getLaudos().map(l => l.protocolo).filter(Boolean));
+
     ul.innerHTML = cadastros.map(c => {
         const prot = c.protocolo ? `Protocolo: ${c.protocolo}` : `ID: ${c.id}`;
+        const temLaudo = c.protocolo && laudoProts.has(c.protocolo);
+        const badge = temLaudo
+            ? `<span title="Laudo emitido" style="margin-right:6px;color:#28a745;font-size:1.1em;">✓</span>`
+            : `<span title="Laudo pendente" style="margin-right:6px;color:#e67e22;font-size:1em;">⏳</span>`;
         let extra = '';
         if (c.examesNaoListados) extra += `<br>Adicionais: ${c.examesNaoListados.substring(0, 50)}${c.examesNaoListados.length > 50 ? '...' : ''}`;
         if (c.observacoes) extra += `<br>Obs.: ${c.observacoes.substring(0, 100)}${c.observacoes.length > 100 ? '...' : ''}`;
         return `<li data-doc-id="${c.id}">
             <input type="checkbox" class="history-checkbox" value="${c.id}">
-            <span class="protocol-info" onclick="carregarCadastroLocal('${c.id}')">
+            ${badge}<span class="protocol-info" onclick="carregarCadastroLocal('${c.id}')">
                 <b>${prot}</b> — ${c.nome} — CPF: ${c.cpf || 'N/D'} — Idade: ${c.idade || 'N/D'} — Exames: ${(c.exames || []).join(', ')}${extra}
             </span></li>`;
     }).join('');
