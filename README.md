@@ -120,7 +120,7 @@ Interface para preencher resultados de exames e gerar laudos em PDF.
 - Campos dinâmicos por exame: resultado, unidade, valores de referência (pré-preenchidos), material de coleta, método, observação específica e realizador do exame
 - Modo somente leitura por padrão; edição item a item com botão "Editar"
 - **Exame avulso:** botão "+ Adicionar Exame Não Listado" insere um item com todos os campos livres (nome, material, método, resultado, unidade, referência, observação); identificado com borda verde; salvo com `custom: true` no laudo e recarregado corretamente na próxima edição
-- **Atalho WhatsApp:** ícone verde ao lado do nome do paciente abre link `wa.me` com mensagem pré-preenchida contendo nome completo, data de coleta, lista de exames e aviso de laudo educacional
+- **Atalho WhatsApp:** ícone verde ao lado do nome do paciente abre link `wa.me` com mensagem formatada (negrito, itálico, emojis, separadores) contendo nome completo, data de coleta, lista de exames como marcadores e aviso educacional em destaque
 - Código de verificação único por laudo (formato `XXXX-XXXX-XXXX-XXXX`) exibido na tela e no rodapé do PDF
 - Faixa discreta de aviso educacional na margem esquerda de todas as páginas do PDF
 - Observações gerais do laudo
