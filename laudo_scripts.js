@@ -310,12 +310,28 @@ function buildWhatsAppLink(p) {
     const numero = '55' + digits;
     const dataColeta = p.timestamp
         ? new Date(p.timestamp).toLocaleDateString('pt-BR') : '';
-    const examesList = Array.isArray(p.exames) && p.exames.length
-        ? p.exames.join(', ') : 'exames solicitados';
-    const msg = `Olá ${p.nome || ''}, obrigado por ser voluntário em nosso projeto no CETEP/LNAB.` +
-        (dataColeta ? ` Sua coleta foi realizada em ${dataColeta}.` : '') +
-        ` Os exames solicitados foram: ${examesList}.` +
-        ` Lembrando que este é um laudo educacional e não substitui avaliação em laboratório clínico.`;
+    const examesBullets = Array.isArray(p.exames) && p.exames.length
+        ? p.exames.map(e => `• ${e}`).join('\n') : '• (exames não listados)';
+    const sep = '━━━━━━━━━━━━━━━━━';
+    const msg = [
+        `🧪 *SISLAB – CETEP/LNAB*`,
+        `📋 *Laudo Educacional*`,
+        sep,
+        ``,
+        `Olá, *${p.nome || ''}*! 👋`,
+        ``,
+        `Obrigado por ser voluntário em nosso projeto no CETEP/LNAB. Seu laudo está pronto! ✅`,
+        ``,
+        dataColeta ? `📅 *Data da coleta:* ${dataColeta}` : '',
+        ``,
+        `🔬 *Exame(s) solicitado(s):*`,
+        examesBullets,
+        ``,
+        sep,
+        `⚠️ *Atenção:* Este é um laudo *educacional* e _não substitui_ avaliação em laboratório clínico.`,
+        ``,
+        `_Mensagem gerada automaticamente pelo SISLAB – CETEP/LNAB._`,
+    ].filter(l => l !== null).join('\n');
     const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
     const a = document.createElement('a');
     a.href = url;
