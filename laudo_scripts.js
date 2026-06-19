@@ -314,21 +314,21 @@ function buildWhatsAppLink(p) {
         ? p.exames.map(e => `• ${e}`).join('\n') : '• (exames não listados)';
     const sep = '━━━━━━━━━━━━━━━━━';
     const msg = [
-        `🧪 *SISLAB – CETEP/LNAB*`,
-        `📋 *Laudo Educacional*`,
+        `⚗ *SISLAB – CETEP/LNAB*`,
+        `★ *Laudo Educacional* ✔`,
         sep,
         ``,
-        `Olá, *${p.nome || ''}*! 👋`,
+        `Olá, *${p.nome || ''}*!`,
         ``,
-        `Obrigado por ser voluntário em nosso projeto no CETEP/LNAB. Seu laudo está pronto! ✅`,
+        `Obrigado por ser voluntário em nosso projeto no CETEP/LNAB. Seu laudo está pronto! ✔`,
         ``,
-        dataColeta ? `📅 *Data da coleta:* ${dataColeta}` : '',
+        dataColeta ? `⏰ *Data da coleta:* ${dataColeta}` : '',
         ``,
-        `🔬 *Exame(s) solicitado(s):*`,
+        `⚕ *Exame(s) solicitado(s):*`,
         examesBullets,
         ``,
         sep,
-        `⚠️ *Atenção:* Este é um laudo *educacional* e _não substitui_ avaliação em laboratório clínico.`,
+        `⚠ *Atenção:* Este é um laudo *educacional* e _não substitui_ avaliação em laboratório clínico.`,
         ``,
         `_Mensagem gerada automaticamente pelo SISLAB – CETEP/LNAB._`,
     ].filter(l => l !== null).join('\n');
