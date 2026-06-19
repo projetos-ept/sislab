@@ -102,6 +102,7 @@ Interface principal para atendimento ao paciente.
 - Campo para exames não listados (texto livre)
 - Geração de Protocolo de Atendimento em PDF (via jsPDF)
 - Histórico de cadastros com busca em tempo real (protocolo, CPF ou nome)
+- Indicador ✓/⏳ no histórico mostrando se o laudo já foi emitido para cada protocolo
 - Exclusão em lote de protocolos selecionados
 - Impressão em lote de protocolos selecionados
 - Geração de paciente aleatório para testes
@@ -116,9 +117,12 @@ Interface para preencher resultados de exames e gerar laudos em PDF.
 
 - Busca de protocolo por número, CPF ou nome do paciente
 - Carregamento automático dos dados do paciente e da lista de exames do protocolo
-- Campos dinâmicos por exame: resultado, unidade, valores de referência (pré-preenchidos), material de coleta, método e observação específica
+- Campos dinâmicos por exame: resultado, unidade, valores de referência (pré-preenchidos), material de coleta, método, observação específica e realizador do exame
 - Modo somente leitura por padrão; edição item a item com botão "Editar"
 - **Exame avulso:** botão "+ Adicionar Exame Não Listado" insere um item com todos os campos livres (nome, material, método, resultado, unidade, referência, observação); identificado com borda verde; salvo com `custom: true` no laudo e recarregado corretamente na próxima edição
+- **Atalho WhatsApp:** ícone verde ao lado do nome do paciente abre link `wa.me` com mensagem formatada (negrito, itálico, emojis, separadores) contendo nome completo, data de coleta, lista de exames como marcadores e aviso educacional em destaque
+- Código de verificação único por laudo (formato `XXXX-XXXX-XXXX-XXXX`) exibido na tela e no rodapé do PDF
+- Faixa discreta de aviso educacional na margem esquerda de todas as páginas do PDF
 - Observações gerais do laudo
 - Responsável técnico (nome e registro CRBM/CRF) persistido entre laudos
 - Geração de PDF do laudo com cabeçalho profissional (faixa institucional, logos, RESULTADOS)

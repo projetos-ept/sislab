@@ -9,6 +9,12 @@ O PR deve conter:
 - Título conciso (≤ 70 chars) descrevendo o conjunto de mudanças
 - Body com seções **Summary** (bullet points) e **Test plan** (checklist)
 
+## README — atualização obrigatória
+
+Sempre que uma alteração **adicionar ou melhorar** uma funcionalidade existente, atualizar
+`README.md` na mesma sessão de trabalho (mesmo commit ou commit separado antes do PR).
+Não é necessário atualizar o README para correções internas invisíveis ao usuário.
+
 ## Convenções do projeto
 
 - Branch padrão de destino: `main`
